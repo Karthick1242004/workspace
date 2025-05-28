@@ -1,0 +1,488 @@
+import React, { useEffect, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { useParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { X, Save, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import MultipleSelector, { Option } from "@/components/ui/multiselect";
+import CustomUploader from "@/shared/Uploader";
+import { formConfigs, SkillFormData } from "../formtypes";
+import { FormFieldWithLabel } from "./FormField";
+import { useFetchHandler } from "@/@logic/getHandlers";
+import { useMutateHandler } from "@/@logic/mutateHandlers";
+import axiosInstance from "@/utils/axiosInstance";
+import { toast } from "react-hot-toast";
+import { baseURL, HTTPMethod } from "@/@logic";
+import { useNavigation } from "@/hooks/navigationHook";
+
+interface SkillCreateProps {
+  workspaceId?: number;
+  userId?: string;
+  workspaceName?: string;
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const uploadDescription =
+  "PPT, DOCX, XLXS, CSV, PDF, JPEG, PNG, TXT up to 50MB";
+
+interface CustomUploaderProps {
+  id: string;
+  label: string;
+  accept: string;
+  multiple: boolean;
+  fieldName: string;
+  uploadDescription: string;
+  onFilesChange: (files: File[]) => void;
+  value?: File[];
+}
+
+const SkillCreate: React.FC<SkillCreateProps> = ({
+  workspaceId,
+  userId = "1",
+  workspaceName,
+  isOpen,
+  onClose,
+}) => {
+  const { id } = useParams<{ id?: string }>();
+  const queryClient = useQueryClient();
+  const { navigateTo } = useNavigation();
+
+  const config = formConfigs["skill"];
+
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    watch,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<SkillFormData>({
+    defaultValues: config.defaultValues,
+  });
+
+  const skillName = watch("name");
+  const skillDescription = watch("description");
+  const category = watch("category");
+
+  const [selectedFormats, setSelectedFormats] = useState<Option[]>([]);
+  const [formTypes, setFormTypes] = useState<Option[]>([]);
+  const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
+  const [isLoadingSkill, setIsLoadingSkill] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
+
+  // Fetch file format options
+  const { data: fileOptionsData, isLoading: loadingFileOptions } = useFetchHandler(
+    "skills/file-options",
+    "fileOptions"
+  );
+
+  // Fetch skill data if editing
+  const { data: fetchedSkillData, isLoading: loadingSkillData } = useFetchHandler(
+    id ? `skills/${id}` : "",
+    "skillData"
+  );
+
+  useEffect(() => {
+    if (fileOptionsData?.file_format_options?.length) {
+      const opts = fileOptionsData.file_format_options.map((f: string) => ({
+        label: f,
+        value: f,
+      }));
+      setFormTypes(opts);
+      if (selectedFormats.length === 0) setSelectedFormats([opts[0]]);
+    }
+  }, [fileOptionsData]);
+
+  useEffect(() => {
+    if (fetchedSkillData) {
+      reset({
+        name: fetchedSkillData.name,
+        description: fetchedSkillData.description,
+        systemPrompt: fetchedSkillData.system_prompt || "",
+        publicURL:
+          fetchedSkillData.attachments?.find(
+            (a: any) => a.source_type === "URL"
+          )?.url || "",
+        sharePointURL:
+          fetchedSkillData.attachments?.find(
+            (a: any) => a.source_type === "SharePoint"
+          )?.url || "",
+        category:
+          fetchedSkillData.attachments?.[0]?.source_type === "ADLS"
+            ? "File upload"
+            : fetchedSkillData.attachments?.[0]?.source_type === "SharePoint"
+            ? "Sharepoint URL"
+            : "Public URL",
+      });
+      // Populate uploaded files if any attachments with ADLS (you can extend this)
+    }
+  }, [fetchedSkillData, reset]);
+
+  useEffect(() => {
+    setIsLoadingSkill(loadingSkillData);
+  }, [loadingSkillData]);
+
+  // Generate system prompt mutation
+  const systemPromptMutation = useMutateHandler({
+    endUrl: "skills/system-prompt",
+    method: HTTPMethod.POST,
+    onSuccess: (data) => {
+      if (data?.data) setValue("systemPrompt", data.data);
+      setIsGeneratingPrompt(false);
+    },
+  });
+
+  const generateSystemPrompt = async () => {
+    if (!skillName || !skillDescription) return;
+    setIsGeneratingPrompt(true);
+    systemPromptMutation.mutate({
+      name: skillName,
+      description: skillDescription,
+    });
+  };
+
+  // Update the onFilesChange handler to work with Uppy's file format
+  const onFilesChange = (files: any[]) => {
+    setUploadedFiles(files.map(file => file.data));
+  };
+
+  const removeFile = (fileToRemove: File) => {
+    setUploadedFiles((files) => files.filter((f) => f !== fileToRemove));
+    // Also remove from input element files if needed (complex, usually controlled input better)
+  };
+
+  const submitFormMutation = useMutateHandler({
+    endUrl: id 
+      ? `${baseURL}/skills/update?skillId=${id}&userId=${userId}${workspaceId ? `&workspaceId=${workspaceId}` : ''}`
+      : `${baseURL}/skills/create-skill?userId=${userId}${workspaceId ? `&workspaceId=${workspaceId}` : ''}`,
+    method: HTTPMethod.POST,
+    isFormData: true,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workspace"] });
+      if (workspaceId && workspaceName) {
+        queryClient.invalidateQueries({ queryKey: [`${workspaceId}-${workspaceName}`] });
+      }
+      toast.success(`Skill ${id ? "updated" : "created"} successfully!`);
+      onClose();
+      navigateTo({ path: "/workspace/my-workspace" });
+    }
+  });
+
+  const onSubmit = async (data: SkillFormData) => {
+    try {
+      const formData = new FormData();
+
+      formData.append("skill_name", data.name);
+      formData.append("description", data.description);
+      formData.append("system_prompt", data.systemPrompt || "");
+
+      if (workspaceId) formData.append("workspaceId", workspaceId.toString());
+
+      if (data.category === "File upload") {
+        formData.append("dataSource", "ADLS");
+        if (uploadedFiles.length > 0) {
+          uploadedFiles.forEach((file) => {
+            formData.append("fileInput", file);
+          });
+        }
+        formData.append(
+          "fileFormats",
+          selectedFormats.map((f) => f.value).join(",")
+        );
+      } else if (data.category === "Sharepoint URL") {
+        formData.append("dataSource", "SharePoint");
+        formData.append("sharePointURL", data.sharePointURL || "");
+        formData.append(
+          "fileFormats",
+          selectedFormats.map((f) => f.value).join(",")
+        );
+      } else if (data.category === "Public URL") {
+        formData.append("dataSource", "URL");
+        formData.append("publicURL", data.publicURL || "");
+      }
+
+      // Upload logo if present
+      const logoInput = document.querySelector(
+        'input[name="logoFile"]'
+      ) as HTMLInputElement;
+      if (logoInput?.files?.length) {
+        formData.append("logoFile", logoInput.files[0]);
+      }
+
+      // Use the mutation handler to submit the form
+      await submitFormMutation.mutateAsync(formData as any, {
+        onError: (error) => {
+          console.error(`Error ${id ? 'updating' : 'creating'} skill:`, error);
+          toast.error(`Failed to ${id ? "update" : "create"} skill.`);
+        }
+      });
+
+    } catch (error) {
+      console.error('Error in form submission:', error);
+      toast.error(`Failed to ${id ? "update" : "create"} skill.`);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  if (isLoadingSkill)
+    return (
+      <div className="flex justify-center items-center h-32">
+        <Loader2 className="animate-spin" />
+      </div>
+    );
+
+  const shouldShowFileUploader = category === "File upload";
+  const shouldShowSharePointInput = category === "Sharepoint URL";
+  const shouldShowPublicURLInput = category === "Public URL";
+
+  const hasColumns = config.fields.some((field) => field.column);
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      aria-modal="true"
+      role="dialog"
+      aria-labelledby="skill-create-title"
+    >
+      <div
+        className={`bg-white rounded-lg min-h-fit max-h-[300px] my-auto w-full ${
+          hasColumns ? "max-w-6xl" : "max-w-xl"
+        } px-2 overflow-y-auto shadow-lg`}
+      >
+        <div className="flex justify-between items-center p-4">
+          <div>
+            <h2
+              className="text-md font-unilever-medium"
+              id="skill-create-title"
+            >
+              {id ? `Edit ${config.title}` : `New ${config.title}`}
+            </h2>
+            <p className="text-gray-500 font-thin text-xs">
+              Fill out the details below to {id ? "edit" : "create"} a{" "}
+              {config.title.toLowerCase()} seamlessly.
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Close dialog"
+            className="text-gray-500 hover:text-gray-700 cursor-pointer"
+          >
+            <X size={20} />
+          </button>
+        </div>
+        <div className="px-4">
+          <div className="h-[1px] w-[100%] bg-black"></div>
+        </div>
+        <div className="p-4 overflow-y-auto max-h-[60vh]">
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <div className="border-b border-gray-200 pb-4">
+              <div className="grid grid-cols-2 gap-6">
+                {/* Left column fields */}
+                <div className="space-y-6">
+                  {config.fields
+                    .filter((field) => field.column === "left")
+                    .map((field) => (
+                      <FormFieldWithLabel
+                        key={field.name}
+                        field={field}
+                        control={control}
+                        errors={errors}
+                        isModal={true}
+                        type="skill"
+                        id={id}
+                        skillName={skillName}
+                        skillDescription={skillDescription}
+                        isGeneratingPrompt={isGeneratingPrompt}
+                        generateSystemPrompt={generateSystemPrompt}
+                        className="block"
+                      />
+                    ))}
+                </div>
+
+                {/* Right column fields */}
+                <div className="space-y-6 border-l border-gray-200 pl-6">
+                  {config.fields
+                    .filter((field) => field.column === "right" && field.name === "category")
+                    .map((field) => (
+                      <FormFieldWithLabel
+                        key={field.name}
+                        field={field}
+                        control={control}
+                        errors={errors}
+                        isModal={true}
+                        type="skill"
+                        id={id}
+                        className="block"
+                      />
+                    ))}
+
+                  {(shouldShowFileUploader || shouldShowSharePointInput) && (
+                    <div className="*:not-first:mt-2">
+                      <Label className="block text-sm font-unilever-medium text-gray-700 mb-1">
+                        Choose File Format
+                      </Label>
+                      <MultipleSelector
+                        className="cursor-pointer"
+                        commandProps={{
+                          label: "Select file formats",
+                        }}
+                        defaultOptions={formTypes}
+                        placeholder="Select file formats"
+                        hideClearAllButton
+                        hidePlaceholderWhenSelected
+                        onChange={setSelectedFormats}
+                        emptyIndicator={
+                          <p className="text-center text-sm">No results found</p>
+                        }
+                        value={selectedFormats}
+                      />
+                    </div>
+                  )}
+
+                  {/* File upload / URLs input */}
+                  <div>
+                    <Label
+                      htmlFor={
+                        shouldShowFileUploader
+                          ? `skill-files-${id || "new"}`
+                          : shouldShowSharePointInput
+                          ? "sharePointURL"
+                          : "publicURL"
+                      }
+                      className="block text-sm font-unilever-medium text-gray-700 mb-1"
+                    >
+                      {shouldShowFileUploader
+                        ? "Upload Files"
+                        : shouldShowSharePointInput
+                        ? "SharePoint URL"
+                        : "Public URL"}
+                    </Label>
+
+                    {shouldShowFileUploader ? (
+                      <>
+                        <CustomUploader
+                          id={`skill-files-${id || "new"}`}
+                          label="Choose files or drag & drop them here"
+                          accept=".pdf,.docx,.doc,.txt,.xlsx,.xls"
+                          multiple={true}
+                          fieldName="fileInput"
+                          onFilesChange={onFilesChange}
+                        />
+                        {/* Show selected files preview */}
+                        {uploadedFiles.length > 0 && (
+                          <ul className="mt-2 max-h-24 overflow-y-auto border border-gray-200 rounded p-2 bg-gray-50">
+                            {uploadedFiles.map((file, index) => (
+                              <li
+                                key={`${file.name}-${index}`}
+                                className="flex justify-between items-center text-xs mb-1"
+                              >
+                                <span className="truncate max-w-[200px]">{file.name}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => removeFile(file)}
+                                  className="text-red-500 hover:text-red-700 ml-2"
+                                  aria-label={`Remove file ${file.name}`}
+                                >
+                                  <X size={14} />
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </>
+                    ) : shouldShowSharePointInput ? (
+                      <Controller
+                        name="sharePointURL"
+                        control={control}
+                        rules={{
+                          required: "SharePoint URL is required",
+                          pattern: {
+                            value: /^(https?:\/\/)?([\w\-])+\.{1}([a-zA-Z]{2,63})([\/\w\-]*)*\/?$/,
+                            message: "Enter a valid URL",
+                          },
+                        }}
+                        render={({ field }) => (
+                          <input
+                            {...field}
+                            placeholder="Enter SharePoint URL"
+                            className={`w-full bg-white border ${
+                              errors.sharePointURL
+                                ? "border-red-500"
+                                : "border-gray-200"
+                            } !text-xs px-2 py-1 rounded`}
+                          />
+                        )}
+                      />
+                    ) : shouldShowPublicURLInput ? (
+                      <Controller
+                        name="publicURL"
+                        control={control}
+                        rules={{
+                          required: "Public URL is required",
+                          pattern: {
+                            value: /^(https?:\/\/)?([\w\-])+\.{1}([a-zA-Z]{2,63})([\/\w\-]*)*\/?$/,
+                            message: "Enter a valid URL",
+                          },
+                        }}
+                        render={({ field }) => (
+                          <input
+                            {...field}
+                            placeholder="Enter public URL"
+                            className={`w-full bg-white border ${
+                              errors.publicURL ? "border-red-500" : "border-gray-200"
+                            } !text-xs px-2 py-1 rounded`}
+                          />
+                        )}
+                      />
+                    ) : null}
+
+                    {/* Show validation errors */}
+                    {(errors.publicURL || errors.sharePointURL) && (
+                      <p className="text-xs text-red-600 mt-1">
+                        {errors.publicURL?.message || errors.sharePointURL?.message}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex items-center justify-end mt-3 space-x-2">
+              <Button
+                variant="outline"
+                className="border-red-500 cursor-pointer text-xs text-red-500 !px-2 hover:bg-red-50"
+                type="button"
+                onClick={onClose}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="bg-blue-600 text-xs cursor-pointer text-white hover:bg-blue-700"
+                type="submit"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    {id ? "Saving..." : "Creating...."}
+                    <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                  </>
+                ) : (
+                  <>
+                    {id ? "Save Changes" : `Create ${config.title}`}
+                    <Save className="h-4 w-4 ml-2" />
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default SkillCreate;
