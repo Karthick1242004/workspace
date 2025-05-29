@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Pencil, Trash2, Save, CircleArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FormConfig } from "../formtypes";
@@ -10,6 +10,7 @@ import axiosInstance from "@/utils/axiosInstance";
 import toast from "react-hot-toast";
 import { HTTPMethod } from "@/@logic";
 import { useMutateHandler } from "@/@logic/mutateHandlers";
+import { AxiosError } from "axios";
 
 interface SkillEditProps {
   id: string;
@@ -21,24 +22,47 @@ interface SkillEditProps {
 const SkillEdit: React.FC<SkillEditProps> = ({ id, config, initialData, skillData }) => {
   const { navigateTo } = useNavigation();
   const queryClient = useQueryClient();
-  const formMethods = useForm({
-    defaultValues: initialData,
-  });
-  const { control, handleSubmit, formState: { errors, isSubmitting }, reset, watch } = formMethods;
+  const [localSkillData, setLocalSkillData] = useState<any>(null);
   const [filesToDelete, setFilesToDelete] = useState<number[]>([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const formMethods = useForm({ defaultValues: initialData });
+  const { control, handleSubmit, formState: { errors, isSubmitting }, reset, watch } = formMethods;
+
+  // Fetch skill data on mount
+  useEffect(() => {
+    async function fetchSkill() {
+      try {
+        const response = await axiosInstance.get(`skills/${id}`);
+        setLocalSkillData(response.data);
+        reset({
+          name: response.data.name,
+          description: response.data.description,
+          systemPrompt: response.data.system_prompt || "",
+          category:
+            response.data.attachments?.[0]?.source_type === "ADLS"
+              ? "File upload"
+              : response.data.attachments?.[0]?.source_type === "SharePoint"
+              ? "Sharepoint URL"
+              : "Public URL",
+        });
+      } catch (error) {
+        toast.error("Failed to fetch skill data");
+      }
+    }
+    fetchSkill();
+  }, [id, reset]);
 
   const dataSourceType = watch("category");
   const isADLS = dataSourceType === "File upload";
 
-  const updateMutation = useMutateHandler({
-    endUrl: `skills/edit-skill/${id}`,
-    method: HTTPMethod.POST,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["workspace"] });
-      toast.success("Skill updated successfully!");
-      navigateTo({ path: "/workspace/my-workspace" });
-    },
-  });
+  const handleDeleteFile = (fileId: number) => {
+    if (!localSkillData) return;
+    setFilesToDelete(prev => [...prev, fileId]);
+    setLocalSkillData({
+      ...localSkillData,
+      attachments: localSkillData.attachments.filter((a: any) => a.id !== fileId),
+    });
+  };
 
   const onSubmit = async (data: any) => {
     const formData = new FormData();
@@ -46,9 +70,9 @@ const SkillEdit: React.FC<SkillEditProps> = ({ id, config, initialData, skillDat
       skill_name: data.name,
       description: data.description,
       system_prompt: data.systemPrompt || "",
-      files_to_delete: filesToDelete
+      files_to_delete: filesToDelete,
     };
-    formData.append('payload', JSON.stringify(skillDetails));
+    formData.append("payload", JSON.stringify(skillDetails));
 
     const fileInputs = document.querySelectorAll('input[name="fileInput"]');
     if (fileInputs && fileInputs.length > 0) {
@@ -68,8 +92,42 @@ const SkillEdit: React.FC<SkillEditProps> = ({ id, config, initialData, skillDat
       }
     }
 
-    updateMutation.mutate(formData as any);
+    try {
+      await axiosInstance.post(`skills/edit-skill/${id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setFilesToDelete([]);
+      queryClient.invalidateQueries({ queryKey: ["workspace"] });
+      toast.success("Skill updated successfully!");
+      navigateTo({ path: "/workspace/my-workspace" });
+    } catch (error) {
+      const err = error as AxiosError<any>;
+      const errorMessage =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Unknown error";
+      toast.error(`Failed to update skill due to ${errorMessage}`);
+    }
   };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+  };
+
+  const getFileType = (fileName: string) => {
+    const extension = fileName.split('.').pop()?.toLowerCase();
+    switch (extension) {
+      case 'pdf': return 'PDF';
+      case 'doc': case 'docx': return 'Word';
+      case 'xls': case 'xlsx': return 'Excel';
+      case 'ppt': case 'pptx': return 'PowerPoint';
+      case 'txt': return 'Text';
+      default: return extension?.toUpperCase() || 'Unknown';
+    }
+  };
+
+  const hasAttachments = localSkillData?.attachments && localSkillData.attachments.length > 0;
 
   return (
     <div className="font-unilever h-[var(--edit-content-height)] bg-[#F4FAFC] shadow-lg overflow-y-auto mt-2 rounded-xl w-full">
@@ -138,6 +196,67 @@ const SkillEdit: React.FC<SkillEditProps> = ({ id, config, initialData, skillDat
                   />
                 ))}
             </div>
+            {/* Show uploaded files as in RegularForm */}
+            {id && localSkillData && (
+              <div className="mt-6">
+                <h2 className="text-xs font-unilever-medium text-gray-600 mb-2">Uploaded Files</h2>
+                <div className="bg-white rounded-md shadow-sm overflow-hidden">
+                  {hasAttachments ? (
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-[#c9d0fe]">
+                          <tr>
+                            <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                              Date
+                            </th>
+                            <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                              Type
+                            </th>
+                            <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                              Attachment
+                            </th>
+                            <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {localSkillData?.attachments.map((file: any) => (
+                            <tr key={file.id} className="group bg-[#f6f8ff]">
+                              <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-600">
+                                {formatDate(file.uploaded_at)}
+                              </td>
+                              <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-600">
+                                {getFileType(file.name)}
+                              </td>
+                              <td className="px-4 py-2 whitespace-nowrap text-xs">
+                                <a href={file.path_url} className="text-blue-600 hover:underline">
+                                  {file.name}
+                                </a>
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                {isADLS && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteFile(file.id)}
+                                    className="disabled:opacity-50 cursor-pointer"
+                                  >
+                                    <Trash2 className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-red-500" />
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="p-6 text-center">
+                      <p className="text-sm text-gray-500">No files available</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </form>
       </div>
