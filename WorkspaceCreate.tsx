@@ -46,20 +46,20 @@ const WorkspaceCreate: React.FC<WorkspaceCreateProps> = ({
     try {
       const formData = new FormData();
 
-      // Add all form fields to FormData
+      // Append all non-file fields
       Object.entries(data).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          formData.append(key, String(value));
+        if (key !== "icon" && value !== undefined && value !== null) {
+          formData.append(key, value);
         }
       });
 
-      // Handle file uploads separately
-      const fileInput = document.querySelector('input[name="icon"]') as HTMLInputElement;
-      if (fileInput?.files?.length) {
-        formData.append('icon', fileInput.files[0]);
+      // Handle file upload for 'icon'
+      const iconInput = document.querySelector('input[name="icon"]') as HTMLInputElement;
+      if (iconInput?.files?.length) {
+        formData.append("icon", iconInput.files[0]);
       }
 
-      // Build the URL as in the mutation handler
+      // Build the URL
       const url = `${baseURL}/workspaces/create?userId=${userId}`;
 
       // Send FormData directly using axiosInstance
