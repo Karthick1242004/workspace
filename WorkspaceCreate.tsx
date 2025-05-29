@@ -46,10 +46,10 @@ const WorkspaceCreate: React.FC<WorkspaceCreateProps> = ({
     try {
       const formData = new FormData();
 
-      // Append all non-file fields
+      // Append all non-file fields as strings (SkillCreate.tsx pattern)
       Object.entries(data).forEach(([key, value]) => {
         if (key !== "icon" && value !== undefined && value !== null) {
-          formData.append(key, value);
+          formData.append(key, String(value));
         }
       });
 
