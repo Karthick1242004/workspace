@@ -197,6 +197,7 @@ const SkillEdit: React.FC<SkillEditProps> = ({ id, config, initialData, skillDat
                       handleDelete={handleDelete}
                       itemType="skill"
                       itemName={localSkillData?.name || "this skill"}
+                      id={id}
                     />
                   </DialogContent>
                 </Dialog>
