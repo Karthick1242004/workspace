@@ -44,26 +44,50 @@ const WorkspaceCreate: React.FC<WorkspaceCreateProps> = ({
 
   const onSubmit = async (data: any) => {
     try {
+      // Create FormData instance
       const formData = new FormData();
 
-      // Append all non-file fields as strings
+      // Map of form field names to expected FormData keys
+      const fieldMapping = {
+        name: 'name',
+        description: 'description', 
+        category: 'category',
+        icc: 'icc',
+        cost_center: 'costCenter', // Note: cost_center maps to costCenter
+        responsible_wl3: 'responsible', // Note: responsible_wl3 maps to responsible
+        notes: 'note', // Note: notes maps to note
+      };
+
+      // Append all non-file fields to FormData
       Object.entries(data).forEach(([key, value]) => {
-        if (key !== "icon" && value !== undefined && value !== null) {
-          formData.append(key, String(value));
+        if (key !== "icon" && value !== undefined && value !== null && value !== "") {
+          // Use the mapped field name or original field name
+          const formDataKey = fieldMapping[key as keyof typeof fieldMapping] || key;
+          formData.append(formDataKey, String(value));
         }
       });
 
-      // Handle file upload for 'icon'
+      // Handle file upload for 'icon' (maps to 'logo' in FormData)
       const iconInput = document.querySelector('input[name="icon"]') as HTMLInputElement;
       if (iconInput?.files?.length) {
-        formData.append("icon", iconInput.files[0]);
+        formData.append("logo", iconInput.files[0]);
+      } else {
+        // If no file selected, append empty string to match the payload structure
+        formData.append("logo", "");
       }
 
       // Build the URL
       const url = `${baseURL}/workspaces/create?userId=${userId}`;
 
-      // Send FormData directly using axiosInstance
-      await axiosInstance.post(url, formData);
+      // Configure axios to send FormData with proper headers
+      const config = {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      };
+
+      // Send FormData using axiosInstance
+      await axiosInstance.post(url, formData, config);
 
       queryClient.invalidateQueries({ queryKey: ["workspace"] });
       toast.success("Workspace created successfully!");
