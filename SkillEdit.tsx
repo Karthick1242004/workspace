@@ -33,15 +33,16 @@ const SkillEdit: React.FC<SkillEditProps> = ({ id, config, initialData, skillDat
     async function fetchSkill() {
       try {
         const response = await axiosInstance.get(`skills/${id}`);
-        setLocalSkillData(response.data);
+        const skill = response.data.data;
+        setLocalSkillData(skill);
         reset({
-          name: response.data.name,
-          description: response.data.description,
-          systemPrompt: response.data.system_prompt || "",
+          name: skill.name,
+          description: skill.description,
+          systemPrompt: skill.system_prompt || "",
           category:
-            response.data.attachments?.[0]?.source_type === "ADLS"
+            skill.attachments?.[0]?.source_type === "ADLS"
               ? "File upload"
-              : response.data.attachments?.[0]?.source_type === "SharePoint"
+              : skill.attachments?.[0]?.source_type === "SharePoint"
               ? "Sharepoint URL"
               : "Public URL",
         });
@@ -196,7 +197,6 @@ const SkillEdit: React.FC<SkillEditProps> = ({ id, config, initialData, skillDat
                   />
                 ))}
             </div>
-            {/* Show uploaded files as in RegularForm */}
             {id && localSkillData && (
               <div className="mt-6">
                 <h2 className="text-xs font-unilever-medium text-gray-600 mb-2">Uploaded Files</h2>
