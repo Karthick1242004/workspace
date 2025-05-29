@@ -68,29 +68,9 @@ const WorkspaceCreate: React.FC<WorkspaceCreateProps> = ({
       });
 
       // Handle file upload for 'icon' (maps to 'logo' in FormData)
-      let fileAdded = false;
-      
-      // First try to get file from form data
-      if (data.icon && data.icon instanceof FileList && data.icon.length > 0) {
-        formData.append("logo", data.icon[0]);
-        fileAdded = true;
-      } else if (data.icon && data.icon instanceof File) {
-        formData.append("logo", data.icon);
-        fileAdded = true;
-      }
-      
-      // Fallback: try to get file from DOM if not found in form data
-      if (!fileAdded) {
-        const iconInput = document.querySelector('input[name="icon"]') as HTMLInputElement;
-        if (iconInput?.files?.length) {
-          formData.append("logo", iconInput.files[0]);
-          fileAdded = true;
-        }
-      }
-      
-      // If still no file, append empty string
-      if (!fileAdded) {
-        formData.append("logo", "");
+      const logoInput = document.querySelector('input[name="logoFile"]') as HTMLInputElement;
+      if (logoInput?.files?.length) {
+        formData.append("logo", logoInput.files[0]);
       }
 
       // Build the URL
