@@ -15,6 +15,7 @@ import axiosInstance from "@/utils/axiosInstance";
 import { toast } from "react-hot-toast";
 import { baseURL, HTTPMethod } from "@/@logic";
 import { useNavigation } from "@/hooks/navigationHook";
+import { AxiosError } from "axios";
 
 interface SkillCreateProps {
   workspaceId?: number;
@@ -171,7 +172,7 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
         formData.append("logoFile", logoInput.files[0]);
       }
 
-      const url = `${baseURL}/skills/ceate-skill?userId=${userId}${
+      const url = `${baseURL}skills/create-skill?${
         workspaceId ? `&workspaceId=${workspaceId}` : ""
       }`;
 
@@ -189,7 +190,8 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
       onClose();
       navigateTo({ path: "/workspace/my-workspace" });
     } catch (error) {
-      toast.error(`Failed to ${id ? "update" : "create"} skill.`);
+      const errorMessage =error?.response?.data?.message || error.message || "Unknown error";
+      toast.error(`Failed to ${id ? "update" : "create"} skill due to ${errorMessage}`);
     }
   };
 
@@ -216,7 +218,7 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
       aria-labelledby="skill-create-title"
     >
       <div
-        className={`bg-white rounded-lg min-h-fit max-h-[300px] my-auto w-full ${
+        className={`bg-white rounded-lg min-h-fit my-auto w-full ${
           hasColumns ? "max-w-6xl" : "max-w-xl"
         } px-2 overflow-y-auto shadow-lg`}
       >
