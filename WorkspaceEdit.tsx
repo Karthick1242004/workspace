@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Pencil, Trash2, Save, CircleArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FormConfig } from "../formtypes";
@@ -11,6 +11,9 @@ import toast from "react-hot-toast";
 import { HTTPMethod } from "@/@logic";
 import { useMutateHandler } from "@/@logic/mutateHandlers";
 import { AxiosError } from "axios";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import DeleteDialog from "@/shared/DeleteDialog";
+import RegularFormSkeleton from "@/modules/workspace/dynamic-form/components/RegularFormSkeleton";
 
 interface WorkspaceEditProps {
   id: string;
@@ -21,6 +24,8 @@ interface WorkspaceEditProps {
 const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ id, config, initialData }) => {
   const { navigateTo } = useNavigation();
   const queryClient = useQueryClient();
+  const [localWorkspaceData, setLocalWorkspaceData] = useState<any>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const formMethods = useForm({ defaultValues: initialData });
   const { control, handleSubmit, formState: { errors, isSubmitting }, reset } = formMethods;
 
@@ -29,20 +34,22 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ id, config, initialData }
     async function fetchWorkspace() {
       try {
         const response = await axiosInstance.get(`workspaces/${id}`);
+        const workspace = response.data.data; // Assuming similar response structure to skill
+        setLocalWorkspaceData(workspace);
         reset({
-          name: response.data.name,
-          description: response.data.description,
-          category: response.data.category,
-          icc: response.data.icc,
-          costCenter: response.data.costCenter,
-          responsible: response.data.responsible,
-          note: response.data.note,
+          name: workspace.name,
+          description: workspace.description,
+          category: workspace.category,
+          icc: workspace.icc,
+          costCenter: workspace.costCenter,
+          responsible: workspace.responsible,
+          note: workspace.note,
         });
       } catch (error) {
         toast.error("Failed to fetch workspace data");
       }
     }
-    fetchWorkspace();
+    if (id) fetchWorkspace(); // Fetch only if id exists (editing mode)
   }, [id, reset]);
 
   const onSubmit = async (data: any) => {
@@ -78,6 +85,32 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ id, config, initialData }
     }
   };
 
+  const deleteMutation = useMutateHandler({
+    endUrl: 'workspaces/delete', // Assuming a delete endpoint like this
+    method: HTTPMethod.POST,
+    onSuccess: () => {
+      setIsDialogOpen(false);
+      navigateTo({path: "/workspace/my-workspace"});
+      queryClient.invalidateQueries({ queryKey: ["workspace"] });
+      toast.success("Workspace deleted successfully!");
+    },
+    onError: (error: AxiosError<any>) => {
+      console.error('Error deleting workspace:', error);
+      toast.error("Failed to delete workspace");
+    }
+  });
+
+  const handleDelete = () => {
+    if (!id) return;
+    deleteMutation.mutate({
+      workspace_id: id // Assuming payload structure like this
+    });
+  };
+
+  if (!localWorkspaceData && id) { // Show skeleton only when fetching data for existing workspace
+    return <RegularFormSkeleton />;
+  }
+
   return (
     <div className="font-unilever h-[var(--edit-content-height)] bg-[#F4FAFC] shadow-lg overflow-y-auto mt-2 rounded-xl w-full">
       <div className="max-w-full mx-auto px-5 py-2">
@@ -98,6 +131,28 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ id, config, initialData }
               </h1>
             </div>
             <div className="flex items-center space-x-2">
+              {id && (
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="border-red-500 cursor-pointer text-xs text-red-500 !px-2 hover:bg-red-50"
+                      type="button"
+                    >
+                      Delete {config.title}
+                      <Trash2 className="h-4 w-4 ml-2" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[480px] bg-white">
+                    <DeleteDialog
+                      setIsDialogOpen={setIsDialogOpen}
+                      handleDelete={handleDelete}
+                      itemName={localWorkspaceData?.name || "this workspace"}
+                    />
+                  </DialogContent>
+                </Dialog>
+              )}
+
               <Button
                 className="bg-blue-600 text-xs text-white cursor-pointer hover:bg-blue-700"
                 type="submit"
