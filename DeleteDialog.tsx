@@ -1,23 +1,24 @@
 import { DialogFooter, DialogHeader } from '@/components/ui/dialog';
 import { DialogDescription } from '@radix-ui/react-dialog';
-import React from 'react'
+import React, { Dispatch, SetStateAction } from 'react';
 import BigTrash from '@/assets/icons/CheckCircle.svg'
 import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';
 import { Skill } from '@/@logic/workspaceStore';
 
 interface DeleteDialogProps {
-  skill: {
-    id: number;
-    name: string;
-  };
-  handleDelete: (id: number) => void;
-  setIsDialogOpen: (isOpen: boolean) => void;
+  id: string | number;
+  handleDelete: (id: string | number) => void;
+  setIsDialogOpen: Dispatch<SetStateAction<boolean>>;
+  itemType: string;
+  itemName?: string;
 }
   const DeleteDialog: React.FC<DeleteDialogProps> = ({
-  skill,
+  id,
   handleDelete,
   setIsDialogOpen,
+  itemType,
+  itemName,
 }) => {
   const [isConfirmed, setIsConfirmed] = React.useState(false);
     return (
@@ -27,7 +28,7 @@ interface DeleteDialogProps {
             <img src={BigTrash} className="w-16 h-16" alt="Delete Logo" />
           </div>
           <DialogDescription className="text-center font-unilever-medium text-red-500">
-            Are you sure you want to delete {skill.name}?
+            Are you sure you want to delete this {itemType} {itemName}?
           </DialogDescription>
         </DialogHeader>
   
@@ -68,13 +69,13 @@ interface DeleteDialogProps {
             type="submit"
             onClick={(e) => {
               e.stopPropagation();
-              handleDelete(skill.id); // Trigger delete
+              handleDelete(id); // Trigger delete with the correct id
               setIsDialogOpen(false); // Close the dialog
             }}
             className="text-xs bg-red-400 mt-4 text-white hover:bg-red-500 disabled:opacity-50"
             disabled={!isConfirmed}
           >
-            Delete Skill <Trash2 className="h-4 w-4" />
+            Delete {itemType} <Trash2 className="h-4 w-4" />
           </Button>
         </DialogFooter>
       </>
