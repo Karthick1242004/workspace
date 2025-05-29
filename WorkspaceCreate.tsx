@@ -44,8 +44,6 @@ const WorkspaceCreate: React.FC<WorkspaceCreateProps> = ({
 
   const onSubmit = async (data: any) => {
     try {
-      console.log('Form data before processing:', data); // Debug log
-      
       // Create FormData instance
       const formData = new FormData();
 
@@ -70,56 +68,40 @@ const WorkspaceCreate: React.FC<WorkspaceCreateProps> = ({
       });
 
       // Handle file upload for 'icon' (maps to 'logo' in FormData)
-      // Check if icon file exists in form data
-      if (data.icon) {
-        if (data.icon instanceof File) {
-          console.log('File found in form data:', data.icon.name, data.icon.size); // Debug log
-          formData.append("logo", data.icon);
-        } else if (data.icon instanceof FileList && data.icon.length > 0) {
-          console.log('FileList found in form data:', data.icon[0].name, data.icon[0].size); // Debug log
-          formData.append("logo", data.icon[0]);
-        } else if (Array.isArray(data.icon) && data.icon.length > 0 && data.icon[0] instanceof File) {
-          console.log('File array found in form data:', data.icon[0].name, data.icon[0].size); // Debug log
-          formData.append("logo", data.icon[0]);
-        } else {
-          console.log('Icon data exists but not recognized as File:', typeof data.icon, data.icon); // Debug log
-          // Try to get file from file input element as fallback
-          const iconInput = document.querySelector('input[name="icon"]') as HTMLInputElement;
-          if (iconInput?.files?.length) {
-            console.log('Found file in input element:', iconInput.files[0].name, iconInput.files[0].size); // Debug log
-            formData.append("logo", iconInput.files[0]);
-          } else {
-            formData.append("logo", "");
-          }
-        }
-      } else {
-        console.log('No icon data found, checking input element'); // Debug log
-        // Try to get file from file input element as fallback
+      let fileAdded = false;
+      
+      // First try to get file from form data
+      if (data.icon && data.icon instanceof FileList && data.icon.length > 0) {
+        formData.append("logo", data.icon[0]);
+        fileAdded = true;
+      } else if (data.icon && data.icon instanceof File) {
+        formData.append("logo", data.icon);
+        fileAdded = true;
+      }
+      
+      // Fallback: try to get file from DOM if not found in form data
+      if (!fileAdded) {
         const iconInput = document.querySelector('input[name="icon"]') as HTMLInputElement;
         if (iconInput?.files?.length) {
-          console.log('Found file in input element:', iconInput.files[0].name, iconInput.files[0].size); // Debug log
           formData.append("logo", iconInput.files[0]);
-        } else {
-          console.log('No file found anywhere'); // Debug log
-          formData.append("logo", "");
+          fileAdded = true;
         }
       }
-
-      // Debug: Log FormData contents
-      console.log('FormData contents:');
-      for (let [key, value] of formData.entries()) {
-        if (value instanceof File) {
-          console.log(`${key}: File - ${value.name} (${value.size} bytes, ${value.type})`);
-        } else {
-          console.log(`${key}: ${value}`);
-        }
+      
+      // If still no file, append empty string
+      if (!fileAdded) {
+        formData.append("logo", "");
       }
 
       // Build the URL
       const url = `${baseURL}/workspaces/create?userId=${userId}`;
 
-      // Don't set Content-Type header explicitly - let browser set it with boundary
-      const config = {};
+      // Configure axios to send FormData with proper headers
+      const config = {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      };
 
       // Send FormData using axiosInstance
       await axiosInstance.post(url, formData, config);
