@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect } from "react";
 import { Pencil, Trash2, Save, CircleArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FormConfig } from "../formtypes";
@@ -10,6 +10,7 @@ import axiosInstance from "@/utils/axiosInstance";
 import toast from "react-hot-toast";
 import { HTTPMethod } from "@/@logic";
 import { useMutateHandler } from "@/@logic/mutateHandlers";
+import { AxiosError } from "axios";
 
 interface WorkspaceEditProps {
   id: string;
@@ -20,36 +21,61 @@ interface WorkspaceEditProps {
 const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ id, config, initialData }) => {
   const { navigateTo } = useNavigation();
   const queryClient = useQueryClient();
-  const formMethods = useForm({
-    defaultValues: initialData,
-  });
+  const formMethods = useForm({ defaultValues: initialData });
   const { control, handleSubmit, formState: { errors, isSubmitting }, reset } = formMethods;
 
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-
-  const updateMutation = useMutateHandler({
-    endUrl: `workspaces/edit-workspace/${id}`,
-    method: HTTPMethod.POST,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["workspace"] });
-      toast.success("Workspace updated successfully!");
-      navigateTo({ path: "/workspace/my-workspace" });
-    },
-  });
+  // Fetch workspace data on mount
+  useEffect(() => {
+    async function fetchWorkspace() {
+      try {
+        const response = await axiosInstance.get(`workspaces/${id}`);
+        reset({
+          name: response.data.name,
+          description: response.data.description,
+          category: response.data.category,
+          icc: response.data.icc,
+          costCenter: response.data.costCenter,
+          responsible: response.data.responsible,
+          note: response.data.note,
+        });
+      } catch (error) {
+        toast.error("Failed to fetch workspace data");
+      }
+    }
+    fetchWorkspace();
+  }, [id, reset]);
 
   const onSubmit = async (data: any) => {
     const formData = new FormData();
-    Object.entries(data).forEach(([key, value]) => {
-      if (key === 'logo') {
-        const fileInput = document.querySelector('input[name="logoFile"]') as HTMLInputElement;
-        if (fileInput && fileInput.files && fileInput.files.length > 0) {
-          formData.append('logo', fileInput.files[0]);
-        }
-      } else {
-        formData.append(key, value !== undefined && value !== null ? String(value) : '');
-      }
-    });
-    updateMutation.mutate(formData as any);
+    // Map fields as per WorkspaceFormData
+    formData.append("name", data.name);
+    formData.append("description", data.description);
+    formData.append("category", data.category);
+    formData.append("icc", data.icc);
+    formData.append("costCenter", data.costCenter);
+    formData.append("responsible", data.responsible);
+    formData.append("note", data.note);
+
+    const logoInput = document.querySelector('input[name="logoFile"]') as HTMLInputElement;
+    if (logoInput && logoInput.files && logoInput.files.length > 0) {
+      formData.append('logo', logoInput.files[0]);
+    }
+
+    try {
+      await axiosInstance.post(`workspaces/edit-workspace/${id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      queryClient.invalidateQueries({ queryKey: ["workspace"] });
+      toast.success("Workspace updated successfully!");
+      navigateTo({ path: "/workspace/my-workspace" });
+    } catch (error) {
+      const err = error as AxiosError<any>;
+      const errorMessage =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Unknown error";
+      toast.error(`Failed to update workspace due to ${errorMessage}`);
+    }
   };
 
   return (
