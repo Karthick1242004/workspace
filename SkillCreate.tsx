@@ -144,12 +144,9 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
 
       if (data.category === "File upload") {
         formData.append("dataSource", "ADLS");
-        const fileInput = document.querySelector(
-          'input[name="fileInput"]'
-        ) as HTMLInputElement;
-        if (fileInput?.files?.length) {
-          Array.from(fileInput.files).forEach((file) => {
-            formData.append("fileInput", file);
+        if (uploadedFiles.length > 0) {
+          uploadedFiles.forEach((file) => {
+            formData.append("fileInput", (file as any).data || file);
           });
         }
         formData.append(
