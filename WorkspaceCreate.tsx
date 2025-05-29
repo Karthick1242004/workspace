@@ -42,19 +42,6 @@ const WorkspaceCreate: React.FC<WorkspaceCreateProps> = ({
     defaultValues,
   });
 
-  const submitFormMutation = useMutateHandler({
-    endUrl: `${baseURL}/workspaces/create?userId=${userId}`,
-    method: HTTPMethod.POST,
-    isFormData: true,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["workspace"] });
-      toast.success("Workspace created successfully!");
-      reset();
-      onClose();
-      navigateTo({ path: "/workspace/my-workspace" });
-    }
-  });
-
   const onSubmit = async (data: any) => {
     try {
       const formData = new FormData();
@@ -72,14 +59,17 @@ const WorkspaceCreate: React.FC<WorkspaceCreateProps> = ({
         formData.append('icon', fileInput.files[0]);
       }
 
-      // Use the mutation handler to submit the form
-      await submitFormMutation.mutateAsync(formData as any, {
-        onError: (error) => {
-          console.error('Error creating workspace:', error);
-          toast.error("Failed to create workspace");
-        }
-      });
+      // Build the URL as in the mutation handler
+      const url = `${baseURL}/workspaces/create?userId=${userId}`;
 
+      // Send FormData directly using axiosInstance
+      await axiosInstance.post(url, formData);
+
+      queryClient.invalidateQueries({ queryKey: ["workspace"] });
+      toast.success("Workspace created successfully!");
+      reset();
+      onClose();
+      navigateTo({ path: "/workspace/my-workspace" });
     } catch (error) {
       console.error('Error in form submission:', error);
       toast.error("Failed to create workspace");
