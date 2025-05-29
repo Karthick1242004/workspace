@@ -153,23 +153,6 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
     // Also remove from input element files if needed (complex, usually controlled input better)
   };
 
-  const submitFormMutation = useMutateHandler({
-    endUrl: id 
-      ? `${baseURL}/skills/update?skillId=${id}&userId=${userId}${workspaceId ? `&workspaceId=${workspaceId}` : ''}`
-      : `${baseURL}/skills/create-skill?userId=${userId}${workspaceId ? `&workspaceId=${workspaceId}` : ''}`,
-    method: HTTPMethod.POST,
-    isFormData: true,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["workspace"] });
-      if (workspaceId && workspaceName) {
-        queryClient.invalidateQueries({ queryKey: [`${workspaceId}-${workspaceName}`] });
-      }
-      toast.success(`Skill ${id ? "updated" : "created"} successfully!`);
-      onClose();
-      navigateTo({ path: "/workspace/my-workspace" });
-    }
-  });
-
   const onSubmit = async (data: SkillFormData) => {
     try {
       const formData = new FormData();
@@ -211,14 +194,21 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
         formData.append("logoFile", logoInput.files[0]);
       }
 
-      // Use the mutation handler to submit the form
-      await submitFormMutation.mutateAsync(formData as any, {
-        onError: (error) => {
-          console.error(`Error ${id ? 'updating' : 'creating'} skill:`, error);
-          toast.error(`Failed to ${id ? "update" : "create"} skill.`);
-        }
-      });
+      // Build the URL as in the mutation handler
+      const url = id 
+        ? `${baseURL}/skills/update?skillId=${id}&userId=${userId}${workspaceId ? `&workspaceId=${workspaceId}` : ''}`
+        : `${baseURL}/skills/create-skill?userId=${userId}${workspaceId ? `&workspaceId=${workspaceId}` : ''}`;
 
+      // Send FormData directly using axiosInstance
+      await axiosInstance.post(url, formData);
+
+      queryClient.invalidateQueries({ queryKey: ["workspace"] });
+      if (workspaceId && workspaceName) {
+        queryClient.invalidateQueries({ queryKey: [`${workspaceId}-${workspaceName}`] });
+      }
+      toast.success(`Skill ${id ? "updated" : "created"} successfully!`);
+      onClose();
+      navigateTo({ path: "/workspace/my-workspace" });
     } catch (error) {
       console.error('Error in form submission:', error);
       toast.error(`Failed to ${id ? "update" : "create"} skill.`);
