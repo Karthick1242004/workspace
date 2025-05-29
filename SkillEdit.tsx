@@ -11,6 +11,9 @@ import toast from "react-hot-toast";
 import { HTTPMethod } from "@/@logic";
 import { useMutateHandler } from "@/@logic/mutateHandlers";
 import { AxiosError } from "axios";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import DeleteDialog from "@/shared/DeleteDialog";
+import RegularFormSkeleton from "@/modules/workspace/dynamic-form/components/RegularFormSkeleton";
 
 interface SkillEditProps {
   id: string;
@@ -50,7 +53,7 @@ const SkillEdit: React.FC<SkillEditProps> = ({ id, config, initialData, skillDat
         toast.error("Failed to fetch skill data");
       }
     }
-    fetchSkill();
+    if (id) fetchSkill(); // Fetch only if id exists (editing mode)
   }, [id, reset]);
 
   const dataSourceType = watch("category");
@@ -130,6 +133,32 @@ const SkillEdit: React.FC<SkillEditProps> = ({ id, config, initialData, skillDat
 
   const hasAttachments = localSkillData?.attachments && localSkillData.attachments.length > 0;
 
+  const deleteMutation = useMutateHandler({
+    endUrl: 'skills/delete',
+    method: HTTPMethod.POST,
+    onSuccess: () => {
+      setIsDialogOpen(false);
+      navigateTo({path: "/workspace/my-workspace"});
+      queryClient.invalidateQueries({ queryKey: ["workspace"] });
+      toast.success("Skill deleted successfully!");
+    },
+    onError: (error: AxiosError<any>) => {
+      console.error('Error deleting skill:', error);
+      toast.error("Failed to delete skill");
+    }
+  });
+
+  const handleDelete = () => {
+    if (!id) return;
+    deleteMutation.mutate({
+      skill_id: id
+    });
+  };
+
+  if (!localSkillData) {
+    return <RegularFormSkeleton />;
+  }
+
   return (
     <div className="font-unilever h-[var(--edit-content-height)] bg-[#F4FAFC] shadow-lg overflow-y-auto mt-2 rounded-xl w-full">
       <div className="max-w-full mx-auto px-5 py-2">
@@ -150,6 +179,29 @@ const SkillEdit: React.FC<SkillEditProps> = ({ id, config, initialData, skillDat
               </h1>
             </div>
             <div className="flex items-center space-x-2">
+              {id && (
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="border-red-500 cursor-pointer text-xs text-red-500 !px-2 hover:bg-red-50"
+                      type="button"
+                    >
+                      Delete {config.title}
+                      <Trash2 className="h-4 w-4 ml-2" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[480px] bg-white">
+                    <DeleteDialog
+                      setIsDialogOpen={setIsDialogOpen}
+                      handleDelete={handleDelete}
+                      itemType="skill"
+                      itemName={localSkillData?.name || "this skill"}
+                    />
+                  </DialogContent>
+                </Dialog>
+              )}
+
               <Button
                 className="bg-blue-600 text-xs text-white cursor-pointer hover:bg-blue-700"
                 type="submit"
