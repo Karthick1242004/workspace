@@ -190,10 +190,27 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
       onClose();
       navigateTo({ path: "/workspace/my-workspace" });
     } catch (error) {
-      const errorMessage =error?.response?.data?.message || error.message || "Unknown error";
+      const err = error as AxiosError<any>;
+      const errorMessage =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Unknown error";
       toast.error(`Failed to ${id ? "update" : "create"} skill due to ${errorMessage}`);
     }
   };
+
+  const handleClose = () => {
+    reset(config.defaultValues);
+    setUploadedFiles([]);
+    onClose();
+  };
+
+  useEffect(() => {
+    if (!isOpen) {
+      reset(config.defaultValues);
+      setUploadedFiles([]);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -236,7 +253,7 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
             </p>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             aria-label="Close dialog"
             className="text-gray-500 hover:text-gray-700 cursor-pointer"
           >
@@ -410,7 +427,7 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
                 variant="outline"
                 className="border-red-500 cursor-pointer text-xs text-red-500 !px-2 hover:bg-red-50"
                 type="button"
-                onClick={onClose}
+                onClick={handleClose}
               >
                 Cancel
               </Button>
