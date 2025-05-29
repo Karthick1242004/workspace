@@ -61,17 +61,11 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
   const [isLoadingSkill, setIsLoadingSkill] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
 
+  const { data: fileOptionsData, isLoading: loadingFileOptions } =
+    useFetchHandler("skills/file-options", "fileOptions");
 
-  const { data: fileOptionsData, isLoading: loadingFileOptions } = useFetchHandler(
-    "skills/file-options",
-    "fileOptions"
-  );
-
-
-  const { data: fetchedSkillData, isLoading: loadingSkillData } = useFetchHandler(
-    id ? `skills/${id}` : "",
-    "skillData"
-  );
+  const { data: fetchedSkillData, isLoading: loadingSkillData } =
+    useFetchHandler(id ? `skills/${id}` : "", "skillData");
 
   useEffect(() => {
     if (fileOptionsData?.file_format_options?.length) {
@@ -105,7 +99,6 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
             ? "Sharepoint URL"
             : "Public URL",
       });
-      
     }
   }, [fetchedSkillData, reset]);
 
@@ -131,10 +124,8 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
     });
   };
 
-  const onFilesChange = (files: FileList | null) => {
-    if (!files) return;
-    const fileArray = Array.from(files);
-    setUploadedFiles(fileArray);
+  const onFilesChange = (files: File[] = []) => {
+    setUploadedFiles(files);
   };
 
   const removeFile = (fileToRemove: File) => {
@@ -153,7 +144,9 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
 
       if (data.category === "File upload") {
         formData.append("dataSource", "ADLS");
-        const fileInput = document.querySelector('input[name="fileInput"]') as HTMLInputElement;
+        const fileInput = document.querySelector(
+          'input[name="fileInput"]'
+        ) as HTMLInputElement;
         if (fileInput?.files?.length) {
           Array.from(fileInput.files).forEach((file) => {
             formData.append("fileInput", file);
@@ -181,8 +174,8 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
         formData.append("logoFile", logoInput.files[0]);
       }
 
-      const url =`${baseURL}/skills/ceate-skill?userId=${userId}${workspaceId ? `&workspaceId=${workspaceId}` : ""
-        
+      const url = `${baseURL}/skills/ceate-skill?userId=${userId}${
+        workspaceId ? `&workspaceId=${workspaceId}` : ""
       }`;
 
       await axiosInstance.post(url, formData, {
@@ -191,7 +184,9 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
 
       queryClient.invalidateQueries({ queryKey: ["workspace"] });
       if (workspaceId && workspaceName)
-        queryClient.invalidateQueries({ queryKey: [`${workspaceId}-${workspaceName}`] });
+        queryClient.invalidateQueries({
+          queryKey: [`${workspaceId}-${workspaceName}`],
+        });
 
       toast.success(`Skill ${id ? "updated" : "created"} successfully!`);
       onClose();
@@ -279,7 +274,10 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
 
                 <div className="space-y-6 border-l border-gray-200 pl-6">
                   {config.fields
-                    .filter((field) => field.column === "right" && field.name === "category")
+                    .filter(
+                      (field) =>
+                        field.column === "right" && field.name === "category"
+                    )
                     .map((field) => (
                       <FormFieldWithLabel
                         key={field.name}
@@ -309,7 +307,9 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
                         hidePlaceholderWhenSelected
                         onChange={setSelectedFormats}
                         emptyIndicator={
-                          <p className="text-center text-sm">No results found</p>
+                          <p className="text-center text-sm">
+                            No results found
+                          </p>
                         }
                         value={selectedFormats}
                       />
@@ -342,7 +342,6 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
                           accept=".pdf,.docx,.doc,.txt,.xlsx,.xls"
                           multiple={true}
                           fieldName="fileInput"
-                          uploadDescription={uploadDescription}
                           onFilesChange={onFilesChange}
                         />
                       </>
@@ -353,7 +352,8 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
                         rules={{
                           required: "SharePoint URL is required",
                           pattern: {
-                            value: /^(https?:\/\/)?([\w\-])+\.{1}([a-zA-Z]{2,63})([\/\w\-]*)*\/?$/,
+                            value:
+                              /^(https?:\/\/)?([\w\-])+\.{1}([a-zA-Z]{2,63})([\/\w\-]*)*\/?$/,
                             message: "Enter a valid URL",
                           },
                         }}
@@ -376,7 +376,8 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
                         rules={{
                           required: "Public URL is required",
                           pattern: {
-                            value: /^(https?:\/\/)?([\w\-])+\.{1}([a-zA-Z]{2,63})([\/\w\-]*)*\/?$/,
+                            value:
+                              /^(https?:\/\/)?([\w\-])+\.{1}([a-zA-Z]{2,63})([\/\w\-]*)*\/?$/,
                             message: "Enter a valid URL",
                           },
                         }}
@@ -385,7 +386,9 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
                             {...field}
                             placeholder="Enter public URL"
                             className={`w-full bg-white border ${
-                              errors.publicURL ? "border-red-500" : "border-gray-200"
+                              errors.publicURL
+                                ? "border-red-500"
+                                : "border-gray-200"
                             } !text-xs px-2 py-1 rounded`}
                           />
                         )}
@@ -393,7 +396,8 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
                     ) : null}
                     {(errors.publicURL || errors.sharePointURL) && (
                       <p className="text-xs text-red-600 mt-1">
-                        {errors.publicURL?.message || errors.sharePointURL?.message}
+                        {errors.publicURL?.message ||
+                          errors.sharePointURL?.message}
                       </p>
                     )}
                   </div>
