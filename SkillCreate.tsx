@@ -27,17 +27,6 @@ interface SkillCreateProps {
 const uploadDescription =
   "PPT, DOCX, XLXS, CSV, PDF, JPEG, PNG, TXT up to 50MB";
 
-interface CustomUploaderProps {
-  id: string;
-  label: string;
-  accept: string;
-  multiple: boolean;
-  fieldName: string;
-  uploadDescription: string;
-  onFilesChange: (files: File[]) => void;
-  value?: File[];
-}
-
 const SkillCreate: React.FC<SkillCreateProps> = ({
   workspaceId,
   userId = "1",
@@ -70,15 +59,15 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
   const [formTypes, setFormTypes] = useState<Option[]>([]);
   const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
   const [isLoadingSkill, setIsLoadingSkill] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
 
-  // Fetch file format options
+
   const { data: fileOptionsData, isLoading: loadingFileOptions } = useFetchHandler(
     "skills/file-options",
     "fileOptions"
   );
 
-  // Fetch skill data if editing
+
   const { data: fetchedSkillData, isLoading: loadingSkillData } = useFetchHandler(
     id ? `skills/${id}` : "",
     "skillData"
@@ -116,7 +105,7 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
             ? "Sharepoint URL"
             : "Public URL",
       });
-      // Populate uploaded files if any attachments with ADLS (you can extend this)
+      
     }
   }, [fetchedSkillData, reset]);
 
@@ -124,7 +113,6 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
     setIsLoadingSkill(loadingSkillData);
   }, [loadingSkillData]);
 
-  // Generate system prompt mutation
   const systemPromptMutation = useMutateHandler({
     endUrl: "skills/system-prompt",
     method: HTTPMethod.POST,
@@ -143,14 +131,14 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
     });
   };
 
-  // Update the onFilesChange handler to work with Uppy's file format
-  const onFilesChange = (files: any[]) => {
-    setUploadedFiles(files.map(file => file.data));
+  const onFilesChange = (files: FileList | null) => {
+    if (!files) return;
+    const fileArray = Array.from(files);
+    setUploadedFiles(fileArray);
   };
 
   const removeFile = (fileToRemove: File) => {
     setUploadedFiles((files) => files.filter((f) => f !== fileToRemove));
-    // Also remove from input element files if needed (complex, usually controlled input better)
   };
 
   const onSubmit = async (data: SkillFormData) => {
@@ -165,8 +153,9 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
 
       if (data.category === "File upload") {
         formData.append("dataSource", "ADLS");
-        if (uploadedFiles.length > 0) {
-          uploadedFiles.forEach((file) => {
+        const fileInput = document.querySelector('input[name="fileInput"]') as HTMLInputElement;
+        if (fileInput?.files?.length) {
+          Array.from(fileInput.files).forEach((file) => {
             formData.append("fileInput", file);
           });
         }
@@ -185,8 +174,6 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
         formData.append("dataSource", "URL");
         formData.append("publicURL", data.publicURL || "");
       }
-
-      // Upload logo if present
       const logoInput = document.querySelector(
         'input[name="logoFile"]'
       ) as HTMLInputElement;
@@ -194,23 +181,22 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
         formData.append("logoFile", logoInput.files[0]);
       }
 
-      // Build the URL as in the mutation handler
-      const url = id 
-        ? `${baseURL}/skills/update?skillId=${id}&userId=${userId}${workspaceId ? `&workspaceId=${workspaceId}` : ''}`
-        : `${baseURL}/skills/create-skill?userId=${userId}${workspaceId ? `&workspaceId=${workspaceId}` : ''}`;
+      const url =`${baseURL}/skills/ceate-skill?userId=${userId}${workspaceId ? `&workspaceId=${workspaceId}` : ""
+        
+      }`;
 
-      // Send FormData directly using axiosInstance
-      await axiosInstance.post(url, formData);
+      await axiosInstance.post(url, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
 
       queryClient.invalidateQueries({ queryKey: ["workspace"] });
-      if (workspaceId && workspaceName) {
+      if (workspaceId && workspaceName)
         queryClient.invalidateQueries({ queryKey: [`${workspaceId}-${workspaceName}`] });
-      }
+
       toast.success(`Skill ${id ? "updated" : "created"} successfully!`);
       onClose();
       navigateTo({ path: "/workspace/my-workspace" });
     } catch (error) {
-      console.error('Error in form submission:', error);
       toast.error(`Failed to ${id ? "update" : "create"} skill.`);
     }
   };
@@ -270,7 +256,6 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
           <form onSubmit={handleSubmit(onSubmit)}>
             <div className="border-b border-gray-200 pb-4">
               <div className="grid grid-cols-2 gap-6">
-                {/* Left column fields */}
                 <div className="space-y-6">
                   {config.fields
                     .filter((field) => field.column === "left")
@@ -292,7 +277,6 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
                     ))}
                 </div>
 
-                {/* Right column fields */}
                 <div className="space-y-6 border-l border-gray-200 pl-6">
                   {config.fields
                     .filter((field) => field.column === "right" && field.name === "category")
@@ -332,7 +316,6 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
                     </div>
                   )}
 
-                  {/* File upload / URLs input */}
                   <div>
                     <Label
                       htmlFor={
@@ -359,29 +342,9 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
                           accept=".pdf,.docx,.doc,.txt,.xlsx,.xls"
                           multiple={true}
                           fieldName="fileInput"
+                          uploadDescription={uploadDescription}
                           onFilesChange={onFilesChange}
                         />
-                        {/* Show selected files preview */}
-                        {uploadedFiles.length > 0 && (
-                          <ul className="mt-2 max-h-24 overflow-y-auto border border-gray-200 rounded p-2 bg-gray-50">
-                            {uploadedFiles.map((file, index) => (
-                              <li
-                                key={`${file.name}-${index}`}
-                                className="flex justify-between items-center text-xs mb-1"
-                              >
-                                <span className="truncate max-w-[200px]">{file.name}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => removeFile(file)}
-                                  className="text-red-500 hover:text-red-700 ml-2"
-                                  aria-label={`Remove file ${file.name}`}
-                                >
-                                  <X size={14} />
-                                </button>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
                       </>
                     ) : shouldShowSharePointInput ? (
                       <Controller
@@ -428,8 +391,6 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
                         )}
                       />
                     ) : null}
-
-                    {/* Show validation errors */}
                     {(errors.publicURL || errors.sharePointURL) && (
                       <p className="text-xs text-red-600 mt-1">
                         {errors.publicURL?.message || errors.sharePointURL?.message}
