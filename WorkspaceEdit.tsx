@@ -14,11 +14,31 @@ import { AxiosError } from "axios";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import DeleteDialog from "@/shared/DeleteDialog";
 import RegularFormSkeleton from "@/modules/workspace/dynamic-form/components/RegularFormSkeleton";
+import { useLocation } from "react-router-dom";
 
 interface WorkspaceEditProps {
   id: string;
   config: FormConfig<any>;
   initialData: any;
+}
+
+async function fetchWorkspace(id: string, setLocalWorkspaceData: React.Dispatch<React.SetStateAction<any>>, reset: UseFormReturn<any>['reset']) {
+  try {
+    const response = await axiosInstance.get(`workspaces/${id}`);
+    const workspace = response.data.data;
+    setLocalWorkspaceData(workspace);
+    reset({
+      name: workspace.name,
+      description: workspace.description,
+      category: workspace.category,
+      icc: workspace.icc,
+      costCenter: workspace.costCenter,
+      responsible: workspace.responsible,
+      note: workspace.note,
+    });
+  } catch (error) {
+    toast.error("Failed to fetch workspace data");
+  }
 }
 
 const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ id, config, initialData }) => {
@@ -28,33 +48,28 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ id, config, initialData }
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const formMethods = useForm({ defaultValues: initialData });
   const { control, handleSubmit, formState: { errors, isSubmitting }, reset } = formMethods;
+  const location = useLocation();
+  const workspaceDataFromState = location.state?.workspace;
 
-  // Fetch workspace data on mount
   useEffect(() => {
-    async function fetchWorkspace() {
-      try {
-        const response = await axiosInstance.get(`workspaces/${id}`);
-        const workspace = response.data.data; // Assuming similar response structure to skill
-        setLocalWorkspaceData(workspace);
-        reset({
-          name: workspace.name,
-          description: workspace.description,
-          category: workspace.category,
-          icc: workspace.icc,
-          costCenter: workspace.costCenter,
-          responsible: workspace.responsible,
-          note: workspace.note,
-        });
-      } catch (error) {
-        toast.error("Failed to fetch workspace data");
-      }
+    if (workspaceDataFromState) {
+      setLocalWorkspaceData(workspaceDataFromState);
+      reset({
+        name: workspaceDataFromState.name,
+        description: workspaceDataFromState.description,
+        category: workspaceDataFromState.category,
+        icc: workspaceDataFromState.icc,
+        costCenter: workspaceDataFromState.costCenter,
+        responsible: workspaceDataFromState.responsible,
+        note: workspaceDataFromState.note,
+      });
+    } else if (id) {
+      fetchWorkspace(id, setLocalWorkspaceData, reset);
     }
-    if (id) fetchWorkspace(); // Fetch only if id exists (editing mode)
-  }, [id, reset]);
+  }, [id, reset, workspaceDataFromState]);
 
   const onSubmit = async (data: any) => {
     const formData = new FormData();
-    // Map fields as per WorkspaceFormData
     formData.append("name", data.name);
     formData.append("description", data.description);
     formData.append("category", data.category);
@@ -86,7 +101,7 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ id, config, initialData }
   };
 
   const deleteMutation = useMutateHandler({
-    endUrl: 'workspaces/delete', // Assuming a delete endpoint like this
+    endUrl: 'workspaces/delete',
     method: HTTPMethod.POST,
     onSuccess: () => {
       setIsDialogOpen(false);
@@ -103,11 +118,11 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ id, config, initialData }
   const handleDelete = () => {
     if (!id) return;
     deleteMutation.mutate({
-      workspace_id: id // Assuming payload structure like this
+      workspace_id: id
     });
   };
 
-  if (!localWorkspaceData && id) { // Show skeleton only when fetching data for existing workspace
+  if (!workspaceDataFromState && id && !localWorkspaceData) {
     return <RegularFormSkeleton />;
   }
 
@@ -147,7 +162,9 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ id, config, initialData }
                     <DeleteDialog
                       setIsDialogOpen={setIsDialogOpen}
                       handleDelete={handleDelete}
+                      itemType="workspace"
                       itemName={localWorkspaceData?.name || "this workspace"}
+                      id={id}
                     />
                   </DialogContent>
                 </Dialog>
