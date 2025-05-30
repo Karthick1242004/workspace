@@ -1,42 +1,7 @@
-react-dom_client.js?v=0e3b4520:5749 Encountered two children with the same key, `[object Object]`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+const categoryOptions = React.useMemo(() => {
+    if (!categories) return [];
+    return categories.map((cat: any) => typeof cat === 'object' ? cat.name : cat);
+  }, [categories]);
 
-2
-react-router-dom.js?v=0e3b4520:5397 Error handled by React Router default ErrorBoundary: Error: Objects are not valid as a React child (found: object with keys {id, name, description}). If you meant to render a collection of children, use an array instead.
-    at throwOnInvalidObjectType (react-dom_client.js?v=0e3b4520:5440:15)
-    at reconcileChildFibersImpl (react-dom_client.js?v=0e3b4520:6041:13)
-    at react-dom_client.js?v=0e3b4520:6061:35
-    at reconcileChildren (react-dom_client.js?v=0e3b4520:6444:53)
-    at beginWork (react-dom_client.js?v=0e3b4520:7830:104)
-    at runWithFiberInDEV (react-dom_client.js?v=0e3b4520:1485:72)
-    at performUnitOfWork (react-dom_client.js?v=0e3b4520:10868:98)
-    at workLoopSync (react-dom_client.js?v=0e3b4520:10728:43)
-    at renderRootSync (react-dom_client.js?v=0e3b4520:10711:13)
-    at performWorkOnRoot (react-dom_client.js?v=0e3b4520:10359:46)
-react-dom_client.js?v=0e3b4520:6264 Error: Objects are not valid as a React child (found: object with keys {id, name, description}). If you meant to render a collection of children, use an array instead.
-    at throwOnInvalidObjectType (react-dom_client.js?v=0e3b4520:5440:15)
-    at reconcileChildFibersImpl (react-dom_client.js?v=0e3b4520:6041:13)
-    at react-dom_client.js?v=0e3b4520:6061:35
-    at reconcileChildren (react-dom_client.js?v=0e3b4520:6444:53)
-    at beginWork (react-dom_client.js?v=0e3b4520:7830:104)
-    at runWithFiberInDEV (react-dom_client.js?v=0e3b4520:1485:72)
-    at performUnitOfWork (react-dom_client.js?v=0e3b4520:10868:98)
-    at workLoopSync (react-dom_client.js?v=0e3b4520:10728:43)
-    at renderRootSync (react-dom_client.js?v=0e3b4520:10711:13)
-    at performWorkOnRoot (react-dom_client.js?v=0e3b4520:10359:46)
 
-The above error occurred in the <span> component.
-
-React will try to recreate this component tree from scratch using the error boundary you provided, RenderErrorBoundary.
-react-router-dom.js?v=0e3b4520:5433 React Router caught the following error during render Error: Objects are not valid as a React child (found: object with keys {id, name, description}). If you meant to render a collection of children, use an array instead.
-    at throwOnInvalidObjectType (react-dom_client.js?v=0e3b4520:5440:15)
-    at reconcileChildFibersImpl (react-dom_client.js?v=0e3b4520:6041:13)
-    at react-dom_client.js?v=0e3b4520:6061:35
-    at reconcileChildren (react-dom_client.js?v=0e3b4520:6444:53)
-    at beginWork (react-dom_client.js?v=0e3b4520:7830:104)
-    at runWithFiberInDEV (react-dom_client.js?v=0e3b4520:1485:72)
-    at performUnitOfWork (react-dom_client.js?v=0e3b4520:10868:98)
-    at workLoopSync (react-dom_client.js?v=0e3b4520:10728:43)
-    at renderRootSync (react-dom_client.js?v=0e3b4520:10711:13)
-    at performWorkOnRoot (react-dom_client.js?v=0e3b4520:10359:46) 
-Object
-﻿
+options: field.name === 'category' ? categoryOptions : field.options
