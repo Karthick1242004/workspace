@@ -1,31 +1,42 @@
-{
-    "data": {
-        "id": 74,
-        "name": "Solution Architecture Guideline Assistant",
-        "description": "This skill is used to answer questions based on the 2024 D&A Azure Solution Architecture, including data lake design, data management, approved Azure components, and best practices.",
-        "workspace_id": 2,
-        "system_prompt": "You are an expert Solution Architecture Guideline Assistant specializing in the 2024 D&A Azure Solution Architecture.  \r\n\r\n### Objectives:  \r\n- Use the provided 2024 D&A Azure Solution Architecture documentation to answer queries regarding data lake design, data management, approved Azure components, and best practices.  \r\n- Provide accurate, concise, and context-aware responses based exclusively on the provided documentation or available data. Avoid conjecture or fabricated information at all times.  \r\n- When information is incomplete, present the available data and explicitly state what is missing. For example: **'Data lake storage tiering guidelines found; details on incremental update processes are unavailable.'**  \r\n- Respond professionally and clearly, using **Markdown** formatting for all answers to maintain structure and readability.  \r\n\r\n### Response Guidelines:  \r\n1. **Content Accuracy**: Focus strictly on available information. If relevant insight is not found:  \r\n   - Respond with: **'We couldn't find a relevant answer based on the current information available in our system. This could be due to the phrasing of the question or limitations in the data we have. Please try rephrasing your query, adding more context, or specifying your request\u2014we\u2019re here to help you find the right insight.'**  \r\n2. **Appropriate Context**: For follow-up questions, refer to previous messages to maintain context and provide relevant clarifications or additional insights directly tied to the query intent and chat history.  \r\n3. **Ambiguous Queries**: When a question is vague, ask follow-up questions to clarify user intent before providing an answer.  \r\n4. **Response Structure**:  \r\n   - Use organized paragraphs or bullet points based on the type of response.  \r\n   - If structured data is involved, utilize **Markdown tables** for clarity.  \r\n   - Maintain a professional, approachable, and user-focused tone in all answers.   \r\n\r\n### Examples:  \r\n#### Question type: Specific guidance found within the system  \r\n**User Query**: What are the best practices for managing data in the Azure data lake?  \r\n**Response**:  \r\n**Best Practices for Managing Data in an Azure Data Lake:**  \r\n- **Data Governance**:\r\n  - Implement clear access controls using Azure Active Directory.  \r\n  - Define taxonomy and naming conventions for structured data organization.  \r\n- **Performance Optimization**:  \r\n  - Utilize partitioning techniques for high query efficiency.  \r\n  - Prefer ADLS Gen2 for native hierarchical storage integration.   \r\n\r\n#### Question type: Partial data available  \r\n**User Query**: Can you explain the architecture pattern for scalable pipelines?  \r\n**Response**:  \r\n- **Available Information**: Scalable pipelines should leverage Azure Data Factory for transformation workflows and Azure Databricks for advanced data processing.  \r\n- **Unavailable Information**: Details on pipeline error-handling mechanisms or cost optimization strategies were not provided.  \r\n\r\n#### Question type: Missing data or ambiguous request  \r\n**User Query**: How do I optimize Azure architecture for all scenarios?  \r\n**Response**:  \r\n**'We couldn't find a relevant answer based on the current information available in our system. This could be due to the phrasing of the question or limitations in the data we have. Please try rephrasing your query, adding more context, or specifying your request\u2014we\u2019re here to help you find the right insight.'**  \r\n\r\nAct as a trusted expert in Azure solution architecture while adhering strictly to the available 2024 D&A guidelines.",
-        "is_processed_for_rag": true,
-        "processing_status": "Completed",
-        "logo_path": "workspace/2/skill/74/logo/logo.png",
-        "created_by_id": 1,
-        "created_at": "2025-05-16T08:25:47.491Z",
-        "updated_at": "2025-05-19T13:25:28.018Z",
-        "attachments": [
-            {
-                "id": 109,
-                "name": "SharePoint URL",
-                "source_type": "SharePoint",
-                "path_url": "https://unilever.sharepoint.com/:f:/r/sites/AIFoundationRAG/Shared%20Documents/RAG/Sample%20Data%20for%20RAG/SAG%20(Solution%20Architecture%20Guidelines)?csf=1&web=1&e=lc7wuL",
-                "source_info": null,
-                "uploaded_by_id": 1,
-                "uploaded_at": "2025-05-16T08:25:47.809Z"
-            }
-        ]
-    },
-    "message": "Skill fetched successfully",
-    "sql_info": {
-        "query": "SELECT * FROM skills WHERE id=74",
-        "execution_time": 0.3581352233886719
-    }
-}
+react-dom_client.js?v=0e3b4520:5749 Encountered two children with the same key, `[object Object]`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+
+2
+react-router-dom.js?v=0e3b4520:5397 Error handled by React Router default ErrorBoundary: Error: Objects are not valid as a React child (found: object with keys {id, name, description}). If you meant to render a collection of children, use an array instead.
+    at throwOnInvalidObjectType (react-dom_client.js?v=0e3b4520:5440:15)
+    at reconcileChildFibersImpl (react-dom_client.js?v=0e3b4520:6041:13)
+    at react-dom_client.js?v=0e3b4520:6061:35
+    at reconcileChildren (react-dom_client.js?v=0e3b4520:6444:53)
+    at beginWork (react-dom_client.js?v=0e3b4520:7830:104)
+    at runWithFiberInDEV (react-dom_client.js?v=0e3b4520:1485:72)
+    at performUnitOfWork (react-dom_client.js?v=0e3b4520:10868:98)
+    at workLoopSync (react-dom_client.js?v=0e3b4520:10728:43)
+    at renderRootSync (react-dom_client.js?v=0e3b4520:10711:13)
+    at performWorkOnRoot (react-dom_client.js?v=0e3b4520:10359:46)
+react-dom_client.js?v=0e3b4520:6264 Error: Objects are not valid as a React child (found: object with keys {id, name, description}). If you meant to render a collection of children, use an array instead.
+    at throwOnInvalidObjectType (react-dom_client.js?v=0e3b4520:5440:15)
+    at reconcileChildFibersImpl (react-dom_client.js?v=0e3b4520:6041:13)
+    at react-dom_client.js?v=0e3b4520:6061:35
+    at reconcileChildren (react-dom_client.js?v=0e3b4520:6444:53)
+    at beginWork (react-dom_client.js?v=0e3b4520:7830:104)
+    at runWithFiberInDEV (react-dom_client.js?v=0e3b4520:1485:72)
+    at performUnitOfWork (react-dom_client.js?v=0e3b4520:10868:98)
+    at workLoopSync (react-dom_client.js?v=0e3b4520:10728:43)
+    at renderRootSync (react-dom_client.js?v=0e3b4520:10711:13)
+    at performWorkOnRoot (react-dom_client.js?v=0e3b4520:10359:46)
+
+The above error occurred in the <span> component.
+
+React will try to recreate this component tree from scratch using the error boundary you provided, RenderErrorBoundary.
+react-router-dom.js?v=0e3b4520:5433 React Router caught the following error during render Error: Objects are not valid as a React child (found: object with keys {id, name, description}). If you meant to render a collection of children, use an array instead.
+    at throwOnInvalidObjectType (react-dom_client.js?v=0e3b4520:5440:15)
+    at reconcileChildFibersImpl (react-dom_client.js?v=0e3b4520:6041:13)
+    at react-dom_client.js?v=0e3b4520:6061:35
+    at reconcileChildren (react-dom_client.js?v=0e3b4520:6444:53)
+    at beginWork (react-dom_client.js?v=0e3b4520:7830:104)
+    at runWithFiberInDEV (react-dom_client.js?v=0e3b4520:1485:72)
+    at performUnitOfWork (react-dom_client.js?v=0e3b4520:10868:98)
+    at workLoopSync (react-dom_client.js?v=0e3b4520:10728:43)
+    at renderRootSync (react-dom_client.js?v=0e3b4520:10711:13)
+    at performWorkOnRoot (react-dom_client.js?v=0e3b4520:10359:46) 
+Object
+﻿
