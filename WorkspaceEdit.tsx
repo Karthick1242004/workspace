@@ -33,12 +33,17 @@ async function fetchWorkspace(id: string, setLocalWorkspaceData: React.Dispatch<
       description: workspace.description,
       category: workspace.category,
       icc: workspace.icc,
-      costCenter: workspace.costCenter,
-      responsible: workspace.responsible,
-      note: workspace.note,
+      cost_center: workspace.cost_center,
+      responsible_wl3: workspace.responsible_wl3,
+      notes: workspace.notes,
     });
   } catch (error) {
-    toast.error("Failed to fetch workspace data");
+    const err = error as AxiosError<any>;
+      const errorMessage =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Unknown error";
+    toast.error(`Failed to fetch workspace data due to ${errorMessage}`);
   }
 }
 
@@ -53,28 +58,25 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ id, config, initialData }
   const location = useLocation();
   const workspaceDataFromState = location.state?.workspace;
 
-  // Transform categories to strings and normalize to lowercase
   const categoryOptions = React.useMemo(() => {
     if (!categories) return [];
     const options = categories.map((cat: any) => {
       const value = typeof cat === 'object' ? cat.name : cat;
-      return value?.toLowerCase(); // Normalize to lowercase and handle potential null/undefined
+      return value?.toLowerCase(); 
     });
-    console.log("Category Options (normalized):", options);
     return options;
   }, [categories]);
 
   useEffect(() => {
     if (workspaceDataFromState) {
       setLocalWorkspaceData(workspaceDataFromState);
-      console.log("Workspace data from state:", workspaceDataFromState);
       reset({
         name: workspaceDataFromState.name,
         description: workspaceDataFromState.description,
         category: workspaceDataFromState.category?.toLowerCase(),
         icc: workspaceDataFromState.icc,
-        costCenter: workspaceDataFromState.costCenter,
-        responsible: workspaceDataFromState.responsible,
+        cost_center: workspaceDataFromState.cost_center,
+        responsible_wl3: workspaceDataFromState.responsible_wl3,
         note: workspaceDataFromState.note,
       });
     } else if (id) {
@@ -82,16 +84,13 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ id, config, initialData }
     }
   }, [id, reset, workspaceDataFromState]);
 
-  // Effect to set category value once options are loaded
   useEffect(() => {
     if (localWorkspaceData && categoryOptions.length > 0) {
       const normalizedCategory = localWorkspaceData.category?.toLowerCase();
-      console.log("Setting category value:", normalizedCategory, "with options:", categoryOptions);
       if (categoryOptions.includes(normalizedCategory)) {
          setValue('category', normalizedCategory);
-         console.log("Category value set successfully");
       } else {
-         console.warn("Workspace category not found in options:", normalizedCategory);
+        toast.error(`Workspace category not found in options:${ normalizedCategory}`);
       }
     }
   }, [localWorkspaceData, categoryOptions, setValue]);
@@ -102,13 +101,13 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ id, config, initialData }
     formData.append("description", data.description);
     formData.append("category", data.category);
     formData.append("icc", data.icc);
-    formData.append("costCenter", data.costCenter);
-    formData.append("responsible", data.responsible);
-    formData.append("note", data.note);
+    formData.append("cost_center", data.cost_center);
+    formData.append("responsible_wl3", data.responsible_wl3);
+    formData.append("notes", data.notes);
 
     const logoInput = document.querySelector('input[name="logoFile"]') as HTMLInputElement;
     if (logoInput && logoInput.files && logoInput.files.length > 0) {
-      formData.append('logo', logoInput.files[0]);
+      formData.append('icon', logoInput.files[0]);
     }
 
     try {
@@ -129,7 +128,7 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ id, config, initialData }
   };
 
   const deleteMutation = useMutateHandler({
-    endUrl: 'workspaces/delete',
+    endUrl: `workspaces/delete-workspace/${id}`,
     method: HTTPMethod.POST,
     onSuccess: () => {
       setIsDialogOpen(false);
@@ -139,7 +138,12 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ id, config, initialData }
     },
     onError: (error: AxiosError<any>) => {
       console.error('Error deleting workspace:', error);
-      toast.error("Failed to delete workspace");
+      const err = error as AxiosError<any>;
+      const errorMessage =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Unknown error";
+      toast.error(`Failed to delete workspace due to ${errorMessage}`);
     }
   });
 
