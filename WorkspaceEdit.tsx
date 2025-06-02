@@ -52,7 +52,7 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ id, config, initialData }
   const queryClient = useQueryClient();
   const [localWorkspaceData, setLocalWorkspaceData] = useState<any>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const { data: categories = [] } = useFetchHandler('workspaces/categories', 'workspace-categories');
+  const { data: categories = [], isLoading: isLoadingCategories } = useFetchHandler('workspaces/categories', 'workspace-categories');
   const formMethods = useForm({ defaultValues: initialData });
   const { control, handleSubmit, formState: { errors, isSubmitting }, reset, setValue } = formMethods;
   const location = useLocation();
@@ -225,6 +225,7 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ id, config, initialData }
                 isModal={false}
                 type="workspace"
                 id={id}
+                isLoading={field.name === 'category' ? isLoadingCategories : false}
               />
             ))}
           </div>
