@@ -26,6 +26,7 @@ interface FormFieldRendererProps {
   skillDescription?: string;
   isGeneratingPrompt?: boolean;
   generateSystemPrompt?: () => Promise<void>;
+  isLoading?: boolean;
 }
 
 export const FormFieldRenderer: React.FC<FormFieldRendererProps> = ({
@@ -38,7 +39,8 @@ export const FormFieldRenderer: React.FC<FormFieldRendererProps> = ({
   skillName,
   skillDescription,
   isGeneratingPrompt = false,
-  generateSystemPrompt
+  generateSystemPrompt,
+  isLoading,
 }) => {
   switch (field.type) {
     case "input":
@@ -126,9 +128,15 @@ export const FormFieldRenderer: React.FC<FormFieldRendererProps> = ({
             console.log("Select Options:", field.options);
             console.log("Value matches option:", field.options?.includes(value));
             return (
-              <Select value={value} onValueChange={onChange}>
+              <Select value={value} onValueChange={onChange} disabled={isLoading}>
                 <SelectTrigger className="w-full cursor-pointer bg-white border-gray-200 !text-xs">
-                  <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
+                  {isLoading ? (
+                    <div className="flex items-center">
+                      <Loader2 size={12} className="mr-2 animate-spin" /> Loading...
+                    </div>
+                  ) : (
+                    <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
+                  )}
                 </SelectTrigger>
                 <SelectContent className="bg-white border-gray-200">
                   {field.options?.map((option: string) => (
@@ -175,6 +183,7 @@ export const FormFieldWithLabel: React.FC<FormFieldRendererProps & { className?:
   control,
   errors,
   className = "",
+  isLoading,
   ...props
 }) => {
   return (
@@ -186,7 +195,7 @@ export const FormFieldWithLabel: React.FC<FormFieldRendererProps & { className?:
         {field.label}
         {field.showRequired && <span className="text-red-500 ml-1">*</span>}
       </Label>
-      <FormFieldRenderer field={field} control={control} errors={errors} {...props} />
+      <FormFieldRenderer field={field} control={control} errors={errors} isLoading={isLoading} {...props} />
       {errors[field.name] && (
         <p className="text-red-500 text-xs mt-1">
           {errors[field.name]?.message as string}
