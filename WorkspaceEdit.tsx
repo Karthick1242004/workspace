@@ -28,18 +28,7 @@ async function fetchWorkspace(id: string, setLocalWorkspaceData: React.Dispatch<
     const response = await axiosInstance.get(`workspaces/${id}`);
     const workspace = response.data.data;
     setLocalWorkspaceData(workspace);
-    const normalizedCategory = workspace.category?.toLowerCase();
-    console.log("Fetched Category (raw):", workspace.category);
-    console.log("Fetched Category (normalized):", normalizedCategory);
-    reset({
-      name: workspace.name,
-      description: workspace.description,
-      category: normalizedCategory,
-      icc: workspace.icc,
-      costCenter: workspace.costCenter,
-      responsible: workspace.responsible,
-      note: workspace.note,
-    });
+    // Reset will be called in the useEffect once categories are loaded
   } catch (error) {
     toast.error("Failed to fetch workspace data");
   }
@@ -68,25 +57,31 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ id, config, initialData }
   }, [categories]);
 
   useEffect(() => {
-    if (workspaceDataFromState) {
-      setLocalWorkspaceData(workspaceDataFromState);
-      const normalizedCategory = workspaceDataFromState.category?.toLowerCase();
-      console.log("Workspace Category (raw):", workspaceDataFromState.category);
+    if ((workspaceDataFromState || localWorkspaceData) && categoryOptions.length > 0) {
+      const dataToUse = workspaceDataFromState || localWorkspaceData;
+      const normalizedCategory = dataToUse.category?.toLowerCase();
+      console.log("Workspace Category (raw):", dataToUse.category);
       console.log("Workspace Category (normalized):", normalizedCategory);
-      console.log("Workspace Category (type):", typeof workspaceDataFromState.category);
+      console.log("Workspace Category (type):", typeof dataToUse.category);
+      console.log("Attempting to reset form with category:", normalizedCategory);
       reset({
-        name: workspaceDataFromState.name,
-        description: workspaceDataFromState.description,
+        name: dataToUse.name,
+        description: dataToUse.description,
         category: normalizedCategory,
-        icc: workspaceDataFromState.icc,
-        costCenter: workspaceDataFromState.costCenter,
-        responsible: workspaceDataFromState.responsible,
-        note: workspaceDataFromState.note,
+        icc: dataToUse.icc,
+        costCenter: dataToUse.costCenter,
+        responsible: dataToUse.responsible,
+        note: dataToUse.note,
       });
-    } else if (id) {
-      fetchWorkspace(id, setLocalWorkspaceData, reset);
+    } else if (id && categoryOptions.length === 0) {
+        // If categories are not loaded yet, but we have an ID, fetch workspace data
+        // This case might be less common if categories load quickly, but good to have.
+        // The main reset will happen when categoryOptions is available.
+        if (!localWorkspaceData) {
+             fetchWorkspace(id, setLocalWorkspaceData, reset);
+        }
     }
-  }, [id, reset, workspaceDataFromState]);
+  }, [id, reset, workspaceDataFromState, localWorkspaceData, categoryOptions]);
 
   const onSubmit = async (data: any) => {
     const formData = new FormData();
