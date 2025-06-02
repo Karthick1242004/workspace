@@ -31,7 +31,7 @@ async function fetchWorkspace(id: string, setLocalWorkspaceData: React.Dispatch<
     reset({
       name: workspace.name,
       description: workspace.description,
-      category: workspace.category?.toLowerCase(),
+      category: workspace.category,
       icc: workspace.icc,
       costCenter: workspace.costCenter,
       responsible: workspace.responsible,
@@ -49,22 +49,25 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ id, config, initialData }
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { data: categories = [] } = useFetchHandler('workspaces/categories', 'workspace-categories');
   const formMethods = useForm({ defaultValues: initialData });
-  const { control, handleSubmit, formState: { errors, isSubmitting }, reset } = formMethods;
+  const { control, handleSubmit, formState: { errors, isSubmitting }, reset, setValue } = formMethods;
   const location = useLocation();
   const workspaceDataFromState = location.state?.workspace;
 
+  // Transform categories to strings and normalize to lowercase
   const categoryOptions = React.useMemo(() => {
     if (!categories) return [];
     const options = categories.map((cat: any) => {
       const value = typeof cat === 'object' ? cat.name : cat;
-      return value.toLowerCase();
+      return value?.toLowerCase(); // Normalize to lowercase and handle potential null/undefined
     });
+    console.log("Category Options (normalized):", options);
     return options;
   }, [categories]);
 
   useEffect(() => {
     if (workspaceDataFromState) {
       setLocalWorkspaceData(workspaceDataFromState);
+      console.log("Workspace data from state:", workspaceDataFromState);
       reset({
         name: workspaceDataFromState.name,
         description: workspaceDataFromState.description,
@@ -78,6 +81,20 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ id, config, initialData }
       fetchWorkspace(id, setLocalWorkspaceData, reset);
     }
   }, [id, reset, workspaceDataFromState]);
+
+  // Effect to set category value once options are loaded
+  useEffect(() => {
+    if (localWorkspaceData && categoryOptions.length > 0) {
+      const normalizedCategory = localWorkspaceData.category?.toLowerCase();
+      console.log("Setting category value:", normalizedCategory, "with options:", categoryOptions);
+      if (categoryOptions.includes(normalizedCategory)) {
+         setValue('category', normalizedCategory);
+         console.log("Category value set successfully");
+      } else {
+         console.warn("Workspace category not found in options:", normalizedCategory);
+      }
+    }
+  }, [localWorkspaceData, categoryOptions, setValue]);
 
   const onSubmit = async (data: any) => {
     const formData = new FormData();
