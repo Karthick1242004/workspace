@@ -10,6 +10,7 @@ import axiosInstance from "@/utils/axiosInstance";
 import toast from "react-hot-toast";
 import { HTTPMethod } from "@/@logic";
 import { useMutateHandler } from "@/@logic/mutateHandlers";
+import { useFetchHandler } from "@/@logic/getHandlers";
 import { AxiosError } from "axios";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import DeleteDialog from "@/shared/DeleteDialog";
@@ -27,10 +28,13 @@ async function fetchWorkspace(id: string, setLocalWorkspaceData: React.Dispatch<
     const response = await axiosInstance.get(`workspaces/${id}`);
     const workspace = response.data.data;
     setLocalWorkspaceData(workspace);
+    const normalizedCategory = workspace.category?.toLowerCase();
+    console.log("Fetched Category (raw):", workspace.category);
+    console.log("Fetched Category (normalized):", normalizedCategory);
     reset({
       name: workspace.name,
       description: workspace.description,
-      category: workspace.category,
+      category: normalizedCategory,
       icc: workspace.icc,
       costCenter: workspace.costCenter,
       responsible: workspace.responsible,
@@ -46,18 +50,34 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ id, config, initialData }
   const queryClient = useQueryClient();
   const [localWorkspaceData, setLocalWorkspaceData] = useState<any>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { data: categories = [] } = useFetchHandler('workspaces/categories', 'workspace-categories');
   const formMethods = useForm({ defaultValues: initialData });
   const { control, handleSubmit, formState: { errors, isSubmitting }, reset } = formMethods;
   const location = useLocation();
   const workspaceDataFromState = location.state?.workspace;
 
+  // Transform categories to strings if they're objects
+  const categoryOptions = React.useMemo(() => {
+    if (!categories) return [];
+    const options = categories.map((cat: any) => {
+      const value = typeof cat === 'object' ? cat.name : cat;
+      return value.toLowerCase();
+    });
+    console.log("Category Options (normalized):", options);
+    return options;
+  }, [categories]);
+
   useEffect(() => {
     if (workspaceDataFromState) {
       setLocalWorkspaceData(workspaceDataFromState);
+      const normalizedCategory = workspaceDataFromState.category?.toLowerCase();
+      console.log("Workspace Category (raw):", workspaceDataFromState.category);
+      console.log("Workspace Category (normalized):", normalizedCategory);
+      console.log("Workspace Category (type):", typeof workspaceDataFromState.category);
       reset({
         name: workspaceDataFromState.name,
         description: workspaceDataFromState.description,
-        category: workspaceDataFromState.category,
+        category: normalizedCategory,
         icc: workspaceDataFromState.icc,
         costCenter: workspaceDataFromState.costCenter,
         responsible: workspaceDataFromState.responsible,
@@ -184,7 +204,10 @@ const WorkspaceEdit: React.FC<WorkspaceEditProps> = ({ id, config, initialData }
             {config.fields.map((field) => (
               <FormFieldWithLabel
                 key={field.name}
-                field={field}
+                field={{
+                  ...field,
+                  options: field.name === 'category' ? categoryOptions : field.options
+                }}
                 control={control}
                 errors={errors}
                 isModal={false}
