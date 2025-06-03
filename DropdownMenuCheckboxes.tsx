@@ -8,17 +8,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-interface DropdownMenuCheckboxesProps {
-  onSort: (sortType: string) => void;
-  currentSort: string;
+interface DropdownMenuCheckboxesProps<T extends string> {
+  onSort: (sortType: T) => void;
+  currentSort: T;
   isWorkspace?: boolean;
 }
 
-export function DropdownMenuCheckboxes({ onSort, currentSort, isWorkspace = false }: DropdownMenuCheckboxesProps) {
+export function DropdownMenuCheckboxes<T extends string>({ onSort, currentSort, isWorkspace = false }: DropdownMenuCheckboxesProps<T>) {
   const workspaceSortOptions = [
     { id: "alphabetical", label: "Alphabetical", icon: <AArrowDown /> },
-    { id: "ascending", label: "Ascending", icon: <ArrowUp01 /> },
-    { id: "descending", label: "Descending", icon: <ArrowDown01 /> },
+    { id: "lastModified", label: "Last Modified", icon: <Calendar1 /> },
   ]
 
   const statusFilterOptions = [
@@ -30,7 +29,7 @@ export function DropdownMenuCheckboxes({ onSort, currentSort, isWorkspace = fals
   const options = isWorkspace ? workspaceSortOptions : statusFilterOptions;
 
   const handleSortChange = (sortType: string) => {
-    onSort(sortType);
+    onSort(sortType as T);
   };
 
   return (
@@ -57,8 +56,36 @@ export function DropdownMenuCheckboxes({ onSort, currentSort, isWorkspace = fals
             {index < options.length - 1 && (
               <DropdownMenuSeparator className="my-1 border-gray-100" />
             )}
+            {isWorkspace && index === workspaceSortOptions.length - 1 && (
+              <DropdownMenuSeparator className="my-1 border-gray-100" />
+            )}
           </React.Fragment>
         ))}
+        {isWorkspace && (
+          <>
+            <DropdownMenuCheckboxItem
+              checked={currentSort === "ascending"}
+              onCheckedChange={() => handleSortChange("ascending")}
+              className="flex items-center px-4 py-2 text-sm cursor-pointer hover:bg-gray-50"
+            >
+              <span className="flex items-center">
+                <span className="w-10 ml-3 text-center text-xs"><ArrowUp01 /></span>
+                <span className="text-xs">Ascending</span>
+              </span>
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuSeparator className="my-1 border-gray-100" />
+            <DropdownMenuCheckboxItem
+              checked={currentSort === "descending"}
+              onCheckedChange={() => handleSortChange("descending")}
+              className="flex items-center px-4 py-2 text-sm cursor-pointer hover:bg-gray-50"
+            >
+              <span className="flex items-center">
+                <span className="w-10 ml-3 text-center text-xs"><ArrowDown01 /></span>
+                <span className="text-xs">Descending</span>
+              </span>
+            </DropdownMenuCheckboxItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   )
