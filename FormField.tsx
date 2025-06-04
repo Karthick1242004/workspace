@@ -16,7 +16,7 @@ import CustomUploader from "@/shared/Uploader";
 import { FormField } from "../formtypes";
 
 interface FormFieldRendererProps {
-  field: FormField;
+  field: FormField & { disabled?: boolean };  // allow disabled prop on field
   control: Control<any>;
   errors: FieldErrors;
   isModal?: boolean;
@@ -26,7 +26,6 @@ interface FormFieldRendererProps {
   skillDescription?: string;
   isGeneratingPrompt?: boolean;
   generateSystemPrompt?: () => Promise<void>;
-  isLoading?: boolean;
 }
 
 export const FormFieldRenderer: React.FC<FormFieldRendererProps> = ({
@@ -40,7 +39,6 @@ export const FormFieldRenderer: React.FC<FormFieldRendererProps> = ({
   skillDescription,
   isGeneratingPrompt = false,
   generateSystemPrompt,
-  isLoading,
 }) => {
   switch (field.type) {
     case "input":
@@ -53,20 +51,21 @@ export const FormFieldRenderer: React.FC<FormFieldRendererProps> = ({
             <Input
               {...fieldProps}
               placeholder={field.placeholder}
+              disabled={field.disabled}   // <-- pass disabled here
               className="w-full bg-white border-gray-200 !text-xs"
             />
           )}
         />
       );
     case "textarea":
-      if (field.name === 'systemPrompt' && isModal) {
+      if (field.name === "systemPrompt" && isModal) {
         const isGenerateDisabled = !skillName || !skillDescription;
-        
+
         return (
           <div>
             <div className="flex justify-end mt-[-6%] items-center mb-1">
-              <Button 
-                type="button" 
+              <Button
+                type="button"
                 onClick={(e) => {
                   e.preventDefault();
                   if (generateSystemPrompt) generateSystemPrompt();
@@ -94,6 +93,7 @@ export const FormFieldRenderer: React.FC<FormFieldRendererProps> = ({
                   {...fieldProps}
                   rows={field.rows}
                   placeholder={field.placeholder}
+                  disabled={field.disabled}  // <-- pass disabled here
                   className="w-full h-24 bg-white border-gray-200 !text-xs"
                 />
               )}
@@ -101,7 +101,7 @@ export const FormFieldRenderer: React.FC<FormFieldRendererProps> = ({
           </div>
         );
       }
-      
+
       return (
         <Controller
           name={field.name}
@@ -112,6 +112,7 @@ export const FormFieldRenderer: React.FC<FormFieldRendererProps> = ({
               {...fieldProps}
               rows={field.rows}
               placeholder={field.placeholder}
+              disabled={field.disabled}  // <-- pass disabled here
               className="w-full bg-white border-gray-200 !text-xs"
             />
           )}
@@ -122,54 +123,54 @@ export const FormFieldRenderer: React.FC<FormFieldRendererProps> = ({
         <Controller
           name={field.name}
           control={control}
-          render={({ field: { value, onChange } }) => {
-            console.log("Select Field:", field.name);
-            console.log("Select Value:", value);
-            console.log("Select Options:", field.options);
-            console.log("Value matches option:", field.options?.includes(value));
-            return (
-              <Select value={value} onValueChange={onChange} disabled={isLoading}>
-                <SelectTrigger className="w-full cursor-pointer bg-white border-gray-200 !text-xs">
-                  {isLoading ? (
-                    <div className="flex items-center">
-                      <Loader2 size={12} className="mr-2 animate-spin" /> Loading...
-                    </div>
-                  ) : (
-                    <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
-                  )}
-                </SelectTrigger>
-                <SelectContent className="bg-white border-gray-200">
-                  {field.options?.map((option: string) => (
-                    <SelectItem key={option} value={option} className="!text-xs cursor-pointer">
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            );
-          }}
+          rules={{ required: field.required ? `${field.label} is required` : false }}
+          render={({ field: { value, onChange } }) => (
+            <Select
+              value={value}
+              onValueChange={onChange}
+              disabled={field.disabled}   
+            >
+              <SelectTrigger className="w-full cursor-pointer bg-white border-gray-200 !text-xs">
+                <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
+              </SelectTrigger>
+              <SelectContent className="bg-white border-gray-200">
+                {field.options?.map((option: string) => (
+                  <SelectItem
+                    key={option}
+                    value={option}
+                    className="!text-xs cursor-pointer"
+                  >
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         />
       );
     case "uploader":
-      const uploaderId = `${type}-${field.uploaderType || field.name}-${id || 'new'}`;
-      const isLogo = field.uploaderType === 'logo';
-      const uploaderLabel = isLogo 
+      const uploaderId = `${type}-${field.uploaderType || field.name}-${id || "new"}`;
+      const isLogo = field.uploaderType === "logo";
+      const uploaderLabel = isLogo
         ? "Choose a logo or drag & drop it here"
         : "Choose files or drag & drop them here";
       const uploaderAccept = isLogo
         ? ".jpg,.jpeg,.png,.svg"
-        : ".pdf,.docx,.doc,.txt,.xlsx,.xls";
-      const uploaderDescription= isLogo?"JPEG, JPG, PNG, SVG": "PPT, DOCX, XLXS CSV, PDF, JPEG, PNG, TXT up to 50MB"
+        : ".pdf,.docx,.doc,.txt,.xlsx,.xls,.csv,.ppt,.jpeg,.png";
+      const uploadDescription = !isLogo
+        ? "PPT, DOCX, XLXS CSV, PDF, JPEG, PNG, TXT up to 50MB"
+        : "JPEG, JPG, PNG, SVG formats";
+
       
       return (
         <div onClick={(e) => e.stopPropagation()}>
-          <CustomUploader 
-            id={uploaderId} 
-            label={uploaderLabel} 
+          <CustomUploader
+            id={uploaderId}
+            label={uploaderLabel}
             accept={uploaderAccept}
             multiple={!isLogo}
-            fieldName={isLogo ? 'logoFile' : 'fileInput'}
-            uploadDescription={uploaderDescription}
+            fieldName={isLogo ? "logoFile" : "fileInput"}
+            uploadDescription={uploadDescription}
           />
         </div>
       );
@@ -183,7 +184,6 @@ export const FormFieldWithLabel: React.FC<FormFieldRendererProps & { className?:
   control,
   errors,
   className = "",
-  isLoading,
   ...props
 }) => {
   return (
@@ -193,14 +193,12 @@ export const FormFieldWithLabel: React.FC<FormFieldRendererProps & { className?:
         className="block text-xs font-unilever-medium text-gray-600 mb-1"
       >
         {field.label}
-        {field.showRequired && <span className="text-red-500 ml-1">*</span>}
+        {field.isMandatory && <span className="text-red-500">*</span>}
       </Label>
-      <FormFieldRenderer field={field} control={control} errors={errors} isLoading={isLoading} {...props} />
+      <FormFieldRenderer field={field} control={control} errors={errors} {...props} />
       {errors[field.name] && (
-        <p className="text-red-500 text-xs mt-1">
-          {errors[field.name]?.message as string}
-        </p>
+        <p className="text-red-500 text-xs mt-1">{errors[field.name]?.message as string}</p>
       )}
     </div>
   );
-}; 
+};
