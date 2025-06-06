@@ -14,6 +14,8 @@ import Strokepin from "@/assets/icons/Stroke Pin.svg";
 import Filledpin from "@/assets/icons/Filled pin.svg";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import DeleteDialog from "@/shared/DeleteDialog";
+import toast from "react-hot-toast";
+import { AxiosError } from "axios";
 
 interface Props {
   data: Workspace;
@@ -23,17 +25,44 @@ interface Props {
 export default function WorkspaceCard({ data, isSelected }: Props) {
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const isSkill = false;
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { data: workspaceLogo, isLoading } = useFetchHandler(
     `/workspaces/logo/${data.id}/download`,
     `${data.id}-${data.name}`,
     true,
     true
   );
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const imgUrl = workspaceLogo
     ? URL.createObjectURL(workspaceLogo)
     : FallbackLogo;
+
+  const deleteMutation = useMutateHandler({
+    endUrl: `workspaces/delete-workspace/${data.id}`,
+    method: HTTPMethod.POST,
+    onSuccess: () => {
+      setIsDialogOpen(false);
+      navigate("/workspace/my-workspace");
+      queryClient.invalidateQueries({ queryKey: ["workspace"] });
+      toast.success("Workspace deleted successfully!");
+    },
+    onError: (error: AxiosError<any>) => {
+      console.error('Error deleting workspace:', error);
+      const err = error as AxiosError<any>;
+      const errorMessage =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Unknown error";
+      toast.error(`Failed to delete workspace due to ${errorMessage}`);
+    }
+  });
+
+  const handleDelete = () => {
+    if (!data.id) return;
+    deleteMutation.mutate({
+      workspace_id: data.id
+    });
+  };
 
   const favoriteMutation = useMutateHandler({
     endUrl: "workspaces/favorite-workspace",
@@ -42,13 +71,6 @@ export default function WorkspaceCard({ data, isSelected }: Props) {
       queryClient.invalidateQueries({ queryKey: ["workspace"] });
     },
   });
-
-  const handleDelete = () => {
-    if (!id) return;
-    deleteMutation.mutate({
-      workspace_id: id
-    });
-  };
 
   const handleFavorite = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -124,8 +146,8 @@ export default function WorkspaceCard({ data, isSelected }: Props) {
                   setIsDialogOpen={setIsDialogOpen}
                   handleDelete={handleDelete}
                   itemType="workspace"
-                  itemName={localWorkspaceData?.name || "this workspace"}
-                  id={id}
+                  itemName={data.name || "this workspace"}
+                  id={data.id}
                   isSkill={isSkill}
                 />
               </DialogContent>
