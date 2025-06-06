@@ -13,6 +13,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useNavigation } from "@/hooks/navigationHook";
 import { DropdownMenuCheckboxes } from "@/shared/DropdownMenuCheckboxes";
 import nodata from '@/assets/images/noworkspace.png';
+import WorkspaceTab from "@/shared/tab/workspace-tab";
 
 interface WorkspaceProp {
   workspacesData: Workspace[];
@@ -27,6 +28,7 @@ export default function WorkSpace({ workspacesData, selectedCategory }: Workspac
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [sortedWorkspaces, setSortedWorkspaces] = useState<Workspace[]>([]);
   const [currentSort, setCurrentSort] = useState("A-Z");
+  const [activeTab, setActiveTab] = useState("created-by-me");
 
   const queryClient = useQueryClient();
   const { navigateTo } = useNavigation();
@@ -54,21 +56,32 @@ export default function WorkSpace({ workspacesData, selectedCategory }: Workspac
     }
   }, [workspacesData, currentSort]);
 
-  const handleSort = (sortType: string) => {
-    let sorted = [...workspacesData];
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    if (selectedCategory === "Private") {
+      const filteredWorkspaces = workspacesData.filter(workspace => 
+        value === "created-by-me" ? workspace.created_by_me : !workspace.created_by_me
+      );
+      handleSort(currentSort, filteredWorkspaces);
+    }
+  };
+
+  const handleSort = (sortType: string, workspacesToSort = workspacesData) => {
+    console.log("Sorting by:", sortType);
+    let sorted = [...workspacesToSort];
     sorted.sort((a, b) => {
       if (a.is_favorited && !b.is_favorited) return -1;
       if (!a.is_favorited && b.is_favorited) return 1;
 
-    switch (sortType) {
-      case "A-Z":
-        return a.name.localeCompare(b.name);
-      case "Z-A":
-        return b.name.localeCompare(a.name);
-      default:
-        return 0;
-    }
-  });
+      switch (sortType) {
+        case "A-Z":
+          return a.name.localeCompare(b.name);
+        case "Z-A":
+          return b.name.localeCompare(a.name);
+        default:
+          return 0;
+      }
+    });
     setSortedWorkspaces(sorted);
     setCurrentSort(sortType);
   };
@@ -171,6 +184,12 @@ export default function WorkSpace({ workspacesData, selectedCategory }: Workspac
           AI Workspaces and Skills
         </p>
         <div className="flex flex-row gap-2">
+          {selectedCategory === "Private" && (
+            <WorkspaceTab 
+              workspaces={workspacesData} 
+              onTabChange={handleTabChange}
+            />
+          )}
           <DropdownMenuCheckboxes onSort={handleSort} currentSort={currentSort} isWorkspace={true} />
           <button
             className="mb-3 cursor-pointer font-unilever text-xs flex flex-row gap-1 justify-center items-center text-white bg-[var(--workspace-color-highlight)] px-2 py-2 rounded-sm"
