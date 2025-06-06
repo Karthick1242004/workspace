@@ -12,20 +12,21 @@ import { toast } from "react-hot-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigation } from "@/hooks/navigationHook";
 import { DropdownMenuCheckboxes } from "@/shared/DropdownMenuCheckboxes";
+import nodata from '@/assets/images/noworkspace.png';
 
 interface WorkspaceProp {
   workspacesData: Workspace[];
   isLoading: boolean;
-  selectedCategory: string; 
+  selectedCategory: string;
 }
 
-export default function WorkSpace({ workspacesData,selectedCategory }: WorkspaceProp) {
+export default function WorkSpace({ workspacesData, selectedCategory }: WorkspaceProp) {
   const isLoading = useWorkspaceStore((state) => state.isLoading);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [columnCount, setColumnCount] = useState(3);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [sortedWorkspaces, setSortedWorkspaces] = useState<Workspace[]>([]);
-  const [currentSort, setCurrentSort] = useState("Alphabetical");
+  const [currentSort, setCurrentSort] = useState("A-Z");
 
   const queryClient = useQueryClient();
   const { navigateTo } = useNavigation();
@@ -55,27 +56,19 @@ export default function WorkSpace({ workspacesData,selectedCategory }: Workspace
 
   const handleSort = (sortType: string) => {
     let sorted = [...workspacesData];
-
-
     sorted.sort((a, b) => {
       if (a.is_favorited && !b.is_favorited) return -1;
       if (!a.is_favorited && b.is_favorited) return 1;
-      return 0;
-    });
-
 
     switch (sortType) {
-      case "Alphabetical":
-      case "Ascending":
-        sorted.sort((a, b) => a.name.localeCompare(b.name));
-        break;
-      case "Descending":
-        sorted.sort((a, b) => b.name.localeCompare(a.name));
-        break;
+      case "A-Z":
+        return a.name.localeCompare(b.name);
+      case "Z-A":
+        return b.name.localeCompare(a.name);
       default:
-        break;
+        return 0;
     }
-
+  });
     setSortedWorkspaces(sorted);
     setCurrentSort(sortType);
   };
@@ -90,7 +83,6 @@ export default function WorkSpace({ workspacesData,selectedCategory }: Workspace
 
   const renderCards = () => {
     if (!sortedWorkspaces) return null;
-
     let content: React.ReactNode[] = [];
     let currentRow = -1;
 
@@ -101,7 +93,7 @@ export default function WorkSpace({ workspacesData,selectedCategory }: Workspace
         if (content.length > 0) {
           const prevRowSelectedIndex =
             selectedIndex !== null &&
-            getRowNumber(selectedIndex) === rowNumber - 1
+              getRowNumber(selectedIndex) === rowNumber - 1
               ? selectedIndex
               : null;
           if (prevRowSelectedIndex !== null) {
@@ -152,6 +144,16 @@ export default function WorkSpace({ workspacesData,selectedCategory }: Workspace
     return content;
   };
 
+  const renderNoData = () => {
+    return (
+      <div className="col-span-full flex flex-col items-center justify-center w-full h-[calc(100vh-var(--navbar-height)-9rem)]">
+        <img src={nodata} alt="No workspace data present" className="w-96 xl:w-1/2 h-auto object-contain" />
+        <p className="text-black mt-4 text-md font-unilever-medium">No workspaces</p>
+        <p className="text-gray-500 mt-4 text-sm font-unilever">To get started, create a new workspace</p>
+      </div>
+    );
+  };
+
   const renderSkeleton = () => {
     return Array(6)
       .fill(0)
@@ -169,7 +171,7 @@ export default function WorkSpace({ workspacesData,selectedCategory }: Workspace
           AI Workspaces and Skills
         </p>
         <div className="flex flex-row gap-2">
-          <DropdownMenuCheckboxes onSort={handleSort} currentSort={currentSort} isWorkspace={true}/>
+          <DropdownMenuCheckboxes onSort={handleSort} currentSort={currentSort} isWorkspace={true} />
           <button
             className="mb-3 cursor-pointer font-unilever text-xs flex flex-row gap-1 justify-center items-center text-white bg-[var(--workspace-color-highlight)] px-2 py-2 rounded-sm"
             onClick={() => setIsModalOpen(true)}
@@ -180,14 +182,14 @@ export default function WorkSpace({ workspacesData,selectedCategory }: Workspace
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 overflow-y-auto">
-        {isLoading ? renderSkeleton() : renderCards()}
+        {isLoading ? renderSkeleton() : sortedWorkspaces.length > 0 ? (renderCards()) : (renderNoData())}
       </div>
 
       <WorkspaceCreateModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         config={config}
-        selectedCategory={selectedCategory} 
+        selectedCategory={selectedCategory}
       />
     </div>
   );
