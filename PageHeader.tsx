@@ -6,6 +6,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import AdminContolImg from "../../../assets/icons/AdminControl.svg";
 import { RotateCw, Search, Plus, X } from "lucide-react";
 import { TABS_CONFIG, TAB_API_MAP } from "../lib/constants";
+import axiosInstance from "@/utils/axiosInstance";
+
+type RemovePayload = {
+  resource_ids: (number | string)[];
+  resource_type: "persona" | "category" | "skill" | "workspace";
+};
 
 export default function PageHeader() {
   const { activeTab, searchText, selectedIds, setSearchText, openPanel, resetSelections } = useAccessControlStore();
@@ -13,16 +19,7 @@ export default function PageHeader() {
 
   const currentTabConfig = TABS_CONFIG.find((t) => t.value === activeTab);
 
-  const { mutate: removeMutate } = useMutateHandler({
-    endUrl: "access-control/remove-access",
-    method: HTTPMethod.POST,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [activeTab] });
-      resetSelections();
-    },
-  });
-
-  const handleRemove = () => {
+  const handleRemove = async () => {
     if (selectedIds.length === 0) return;
 
     const resourceType = activeTab === "persona" 
@@ -33,13 +30,16 @@ export default function PageHeader() {
       ? "skill" 
       : "workspace";
 
-    const formData = new FormData();
-    formData.append('resource_type', resourceType);
-    selectedIds.forEach(id => {
-      formData.append('resource_ids[]', id.toString());
-    });
-
-    removeMutate(formData);
+    try {
+      await axiosInstance.post("access-control/remove-access", {
+        resource_ids: selectedIds,
+        resource_type: resourceType
+      });
+      queryClient.invalidateQueries({ queryKey: [activeTab] });
+      resetSelections();
+    } catch (error) {
+      console.error("Error removing items:", error);
+    }
   };
 
   return (
@@ -61,7 +61,7 @@ export default function PageHeader() {
         </div>
         {currentTabConfig?.canAdd && (
           <button
-            className="text-sm font-medium flex items-center gap-2 "
+            className="text-sm font-medium flex items-center gap-2"
             onClick={() => openPanel(currentTabConfig.label as any, null)}
           >
             <Plus className="h-4 w-4 text-blue-600" /> {currentTabConfig.label}
