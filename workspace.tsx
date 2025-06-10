@@ -29,6 +29,7 @@ export default function WorkSpace({ workspacesData, selectedCategory }: Workspac
   const [sortedWorkspaces, setSortedWorkspaces] = useState<Workspace[]>([]);
   const [currentSort, setCurrentSort] = useState("A-Z");
   const [activeTab, setActiveTab] = useState("created-by-me");
+  const [filteredWorkspaces, setFilteredWorkspaces] = useState<Workspace[]>([]);
 
   const queryClient = useQueryClient();
   const { navigateTo } = useNavigation();
@@ -52,21 +53,26 @@ export default function WorkSpace({ workspacesData, selectedCategory }: Workspac
 
   useEffect(() => {
     if (workspacesData) {
-      handleSort(currentSort);
+      const filtered = filterWorkspaces(workspacesData, activeTab);
+      setFilteredWorkspaces(filtered);
+      handleSort(currentSort, filtered);
     }
-  }, [workspacesData, currentSort]);
+  }, [workspacesData, activeTab, selectedCategory]);
+
+  const filterWorkspaces = (workspaces: Workspace[], tab: string) => {
+    if (!workspaces || !selectedCategory || selectedCategory !== "Private") {
+      return workspaces;
+    }
+    return workspaces.filter(workspace => 
+      tab === "created-by-me" ? workspace.created_by_me : !workspace.created_by_me
+    );
+  };
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
-    if (selectedCategory === "Private") {
-      const filteredWorkspaces = workspacesData.filter(workspace => 
-        value === "created-by-me" ? workspace.created_by_me : !workspace.created_by_me
-      );
-      handleSort(currentSort, filteredWorkspaces);
-    }
   };
 
-  const handleSort = (sortType: string, workspacesToSort = workspacesData) => {
+  const handleSort = (sortType: string, workspacesToSort = filteredWorkspaces) => {
     console.log("Sorting by:", sortType);
     let sorted = [...workspacesToSort];
     sorted.sort((a, b) => {
@@ -188,6 +194,7 @@ export default function WorkSpace({ workspacesData, selectedCategory }: Workspac
             <WorkspaceTab 
               workspaces={workspacesData} 
               onTabChange={handleTabChange}
+              value={activeTab}
             />
           )}
           <DropdownMenuCheckboxes onSort={handleSort} currentSort={currentSort} isWorkspace={true} />
