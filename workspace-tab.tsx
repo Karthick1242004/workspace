@@ -1,38 +1,33 @@
-import React, { useState } from "react";
+import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Workspace } from "@/@logic/workspaceStore";
 
 interface WorkspaceTabProps {
   workspaces: Workspace[];
   onTabChange?: (value: string) => void;
+  value?: string;
 }
 
-export default function WorkspaceTab({ workspaces, onTabChange }: WorkspaceTabProps) {
-  const [selectedTab, setSelectedTab] = useState("created-by-me");
-
+export default function WorkspaceTab({ workspaces, onTabChange, value = "created-by-me" }: WorkspaceTabProps) {
   const handleTabChange = (value: string) => {
-    setSelectedTab(value);
     onTabChange?.(value);
   };
 
-  const createdByMeWorkspaces = workspaces?.filter(workspace => workspace.created_by_me) || [];
-  const sharedByMeWorkspaces = workspaces?.filter(workspace => !workspace.created_by_me) || [];
-
   return (
-    <Tabs defaultValue="created-by-me" className="w-[300px]" onValueChange={handleTabChange}>
-      <TabsList className="h-[36px] bg-white">
+    <Tabs value={value} onValueChange={handleTabChange}>
+      <TabsList className="h-[38px] bg-white border border-gray-200">
         <TabsTrigger value="created-by-me" className="cursor-pointer">
-          Created by Me ({createdByMeWorkspaces.length})
+          Created by Me
         </TabsTrigger>
         <TabsTrigger value="shared-by-me" className="cursor-pointer">
-          Shared by Me ({sharedByMeWorkspaces.length})
+          Shared with Me
         </TabsTrigger>
       </TabsList>
       <TabsContent value="created-by-me">
-        {/* Content will be handled by parent component */}
+       
       </TabsContent>
       <TabsContent value="shared-by-me">
-        {/* Content will be handled by parent component */}
+        
       </TabsContent>
     </Tabs>
   );
