@@ -169,16 +169,14 @@ export default function WorkspaceCard({ data, isSelected }: Props) {
               className={`text-xs  cursor-pointer
                  ${!data.is_favorited ? " opacity-0 transition delay-100  group-hover:opacity-100" : "opacity-100"}`}
             >
-              {data.is_favorited ? (
-                <img src={Filledpin} />
-              ) : (data.is_favorited && isSelected) ? (
+              {data.is_favorited && isSelected ? (
                 <img src={WhiteFilledPin} />
+              ) : data.is_favorited ? (
+                <img src={Filledpin} />
               ) : (
                 <img src={Strokepin} />
               )}
-
             </button>
-
           </div>
           <div className="flex flex-wrap items-center gap-2 mb-3">
             <Tooltip>
