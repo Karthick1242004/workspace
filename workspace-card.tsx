@@ -12,6 +12,7 @@ import { HTTPMethod } from "@/@logic";
 import { useQueryClient } from "@tanstack/react-query";
 import Strokepin from "@/assets/icons/Stroke Pin.svg";
 import Filledpin from "@/assets/icons/Filled pin.svg";
+import WhiteFilledPin from '@/assets/icons/pin.svg'
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import DeleteDialog from "@/shared/DeleteDialog";
 import toast from "react-hot-toast";
@@ -84,11 +85,10 @@ export default function WorkspaceCard({ data, isSelected }: Props) {
 
   return (
     <div
-      className={`group border rounded-lg p-4 relative transition-all duration-300 h-[200px] hover:border-[var(--workspace-color-highlight)] hover:shadow-[0_0_10px_rgba(96,165,250,0.5)] ${
-        isSelected
-          ? "border-[var(--workspace-color-highlight)] bg-[var(--workspace-color-highlight)] text-white"
-          : "bg-white border-[#b5d3ff] text-gray-600"
-      }`}
+      className={`group border rounded-lg p-4 relative transition-all h-full duration-300 hover:border-[var(--workspace-color-highlight)] hover:shadow-[0_0_10px_rgba(96,165,250,0.5)] ${isSelected
+        ? "border-[var(--workspace-color-highlight)] bg-[var(--workspace-color-highlight)] text-white"
+        : "bg-white border-[#b5d3ff] text-gray-600"
+        }`}
       style={{
         backgroundImage: 'url("@/assets/icons/Frame-2106257085-copy.svg")',
         backgroundRepeat: "no-repeat",
@@ -153,8 +153,8 @@ export default function WorkspaceCard({ data, isSelected }: Props) {
         </div>
       )}
 
-      <div className="flex gap-4 items-start justify-between h-full">
-        <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex gap-4 items-start justify-between">
+        <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-3">
             <h2
               className={`font-unilever-medium text-base truncate ${isSelected
@@ -171,9 +171,12 @@ export default function WorkspaceCard({ data, isSelected }: Props) {
             >
               {data.is_favorited ? (
                 <img src={Filledpin} />
+              ) : (data.is_favorited && isSelected) ? (
+                <img src={WhiteFilledPin} />
               ) : (
                 <img src={Strokepin} />
               )}
+
             </button>
 
           </div>
@@ -212,12 +215,10 @@ export default function WorkspaceCard({ data, isSelected }: Props) {
               {data.skills?.length ?? 0} Skills
             </div>
           </div>
-
-          <p className="text-xs font-unilever flex-grow line-clamp-3 overflow-hidden max-h-[4.6em] leading-[1.5em]">
+          <p className="text-xs font-unilever line-clamp-3">
             {data.description}
           </p>
         </div>
-
         {/* Logo or Skeleton */}
         <div className="flex-shrink-0 w-[80px] h-[80px] flex items-center justify-center border border-[#eaeff5] rounded-sm bg-white ml-2">
           {isLoading ? (
