@@ -5,6 +5,7 @@ import { Trash } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAccessControlStore } from "../../lib/store";
 import { WorkspacePermission } from "../../lib/types";
+import toast from "react-hot-toast";
 
 type Props = {
   workspace: WorkspacePermission | null;
@@ -27,10 +28,13 @@ export default function SidePanelContent({ workspace }: Props) {
     endUrl: "access-control/assign",
     method: HTTPMethod.POST,
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: [activeTab] });
-      setInputValue("");
       const { action, principal_name, principal_type, access_type } = variables as any;
       const groupKey = `${access_type}s` as "owners" | "editors" | "viewers";
+      const actionText = action === "add" ? "added" : "removed";
+      toast.success(`Successfully ${actionText} access as ${access_type}`,{position:"top-right"});
+      queryClient.invalidateQueries({ queryKey: [activeTab] });
+      queryClient.invalidateQueries({ queryKey: ["workspace"] });
+      setInputValue("");
 
       setCurrentWorkspace(prev => {
         if (!prev) return prev; // safeguard for null
@@ -45,7 +49,9 @@ export default function SidePanelContent({ workspace }: Props) {
         };
       });
     },
+
   });
+
   if (!currentWorkspace) return null;
 
   const handleAdd = (groupType: "owners" | "editors" | "viewers") => {
@@ -53,32 +59,58 @@ export default function SidePanelContent({ workspace }: Props) {
       setError("Input cannot be empty");
       return;
     }
-    if (selectedType === "user" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inputValue.trim())) {
+
+    if (
+      selectedType === "user" &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inputValue.trim())
+    ) {
       setError("Please enter a valid email address");
       return;
     }
+
     setError(null);
 
-    mutate({
+    const variables = {
       resource_type: activeTab.includes("skill") ? "skill" : "workspace",
       resource_id: currentWorkspace.resource_id,
       access_type: groupType.slice(0, -1),
       principal_type: selectedType,
       principal_name: inputValue.trim(),
       action: "add",
+    };
+
+    mutate(variables, {
+      onError: () => {
+        toast.error(`Error adding access as ${variables.access_type}`,{position:"top-right"});
+      },
     });
   };
 
-  const handleRemove = (groupType: "owners" | "editors" | "viewers", name: string, type: string) => {
-    mutate({
+
+
+  const handleRemove = (
+    groupType: "owners" | "editors" | "viewers",
+    name: string,
+    type: string
+  ) => {
+    const variables = {
       resource_type: activeTab.includes("skill") ? "skill" : "workspace",
       resource_id: currentWorkspace.resource_id,
       access_type: groupType.slice(0, -1),
       principal_type: type,
       principal_name: name,
       action: "deactivate",
+    };
+
+    mutate(variables, {
+      onError: () => {
+        toast.error(`Error removing access as ${variables.access_type}`, {
+          position: "top-right",
+        });
+      },
     });
   };
+
 
   return (
     <div className="text-sm text-gray-800">
@@ -98,7 +130,7 @@ export default function SidePanelContent({ workspace }: Props) {
           <select
             value={selectedType}
             onChange={(e) => setSelectedType(e.target.value as "ad_group" | "user")}
-            className="border rounded px-1 py-2 mb-5 text-xs text-blue-600 bg-white"
+            className="border rounded cursor-pointer px-1 py-1.5 mb-5 text-xs text-blue-600 bg-white"
           >
             <option value="ad_group">AD Group</option>
             <option value="user">User ID</option>
@@ -111,16 +143,17 @@ export default function SidePanelContent({ workspace }: Props) {
                 value={inputValue}
                 onChange={(e) => {
                   setInputValue(e.target.value);
-                  setError(null); 
+                  setError(null);
                 }}
-                className={`border rounded px-1 py-2 w-full text-xs ${error ? "border-red-500" : "border-gray-300"}`}
+                className={`border rounded px-1 py-2 w-full text-xs ${error ? "border-red-500" : "border-gray-300"
+                  }`}
               />
               <button
                 onClick={() => handleAdd(currentWorkspace.selectedGroup || "owners")}
                 disabled={isPending || !inputValue.trim()}
-                className="bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 text-xs font-semibold disabled:opacity-50"
+                className="bg-blue-600 cursor-pointer text-white px-2.5 py-1.5 rounded hover:bg-blue-700 text-sm flex disabled:opacity-50"
               >
-                + Add
+                + <span className="pl-2">Add</span>
               </button>
             </div>
             {error && <p className="text-red-500 text-xs mt-0.5">{error}</p>}
