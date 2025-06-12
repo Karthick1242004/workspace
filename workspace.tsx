@@ -103,58 +103,43 @@ export default function WorkSpace({ workspacesData, selectedCategory }: Workspac
   const renderCards = () => {
     if (!sortedWorkspaces) return null;
     let content: React.ReactNode[] = [];
-    let currentRow = -1;
+    
+    // Group workspaces into rows
+    const rows: Workspace[][] = [];
+    for (let i = 0; i < sortedWorkspaces.length; i += columnCount) {
+      rows.push(sortedWorkspaces.slice(i, i + columnCount));
+    }
 
-    sortedWorkspaces.forEach((value: Workspace, idx: number) => {
-      const rowNumber = getRowNumber(idx);
-      if (rowNumber !== currentRow) {
-        currentRow = rowNumber;
-        if (content.length > 0) {
-          const prevRowSelectedIndex =
-            selectedIndex !== null &&
-              getRowNumber(selectedIndex) === rowNumber - 1
-              ? selectedIndex
-              : null;
-          if (prevRowSelectedIndex !== null) {
-            content.push(
-              <div
-                key={`details-${rowNumber - 1}`}
-                className="col-span-1 md:col-span-2 lg:col-span-2 xl:col-span-3 w-full"
-              >
-                <WorkspaceDetails
-                  workspace={sortedWorkspaces[prevRowSelectedIndex]}
-                />
-              </div>
-            );
-          }
-        }
-      }
-
-      content.push(
-        <div key={idx} className="w-full">
-          <div
-            className="cursor-pointer transition-all duration-300 ease-in-out"
-            onClick={() => handleSelectCard(idx)}
-          >
-            <WorkspaceCard
-              data={value as unknown as Workspace}
-              isSelected={selectedIndex === idx}
-            />
+    rows.forEach((row, rowIndex) => {
+      // Add workspace cards for this row with equal heights
+      row.forEach((workspace, colIndex) => {
+        const globalIndex = rowIndex * columnCount + colIndex;
+        content.push(
+          <div key={globalIndex} className="w-full h-full">
+            <div
+              className="cursor-pointer transition-all duration-300 ease-in-out h-full"
+              onClick={() => handleSelectCard(globalIndex)}
+            >
+              <WorkspaceCard
+                data={workspace as unknown as Workspace}
+                isSelected={selectedIndex === globalIndex}
+              />
+            </div>
           </div>
-        </div>
-      );
+        );
+      });
 
-      if (
-        idx === sortedWorkspaces.length - 1 &&
-        selectedIndex !== null &&
-        getRowNumber(selectedIndex) === rowNumber
-      ) {
+      // Add WorkspaceDetails if any card in this row is selected
+      const selectedInThisRow = selectedIndex !== null && Math.floor(selectedIndex / columnCount) === rowIndex;
+      if (selectedInThisRow) {
         content.push(
           <div
-            key={`details-${rowNumber}`}
-            className="col-span-1 font-unilever md:col-span-2 lg:col-span-2 xl:col-span-3 w-full"
+            key={`details-${rowIndex}`}
+            className="col-span-1 md:col-span-2 lg:col-span-2 xl:col-span-3 w-full"
           >
-            <WorkspaceDetails workspace={sortedWorkspaces[selectedIndex]} />
+            <WorkspaceDetails
+              workspace={sortedWorkspaces[selectedIndex]}
+            />
           </div>
         );
       }
@@ -207,7 +192,7 @@ export default function WorkSpace({ workspacesData, selectedCategory }: Workspac
           </button>
         </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 overflow-y-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 overflow-y-auto auto-rows-fr">
         {isLoading ? renderSkeleton() : sortedWorkspaces.length > 0 ? (renderCards()) : (renderNoData())}
       </div>
 
