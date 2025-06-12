@@ -111,10 +111,10 @@ export default function WorkSpace({ workspacesData, selectedCategory }: Workspac
     }
 
     rows.forEach((row, rowIndex) => {
-      // Add workspace cards for this row with equal heights
-      row.forEach((workspace, colIndex) => {
+      // Create a subgrid for this row with equal heights
+      const rowCards = row.map((workspace, colIndex) => {
         const globalIndex = rowIndex * columnCount + colIndex;
-        content.push(
+        return (
           <div key={globalIndex} className="w-full h-full">
             <div
               className="cursor-pointer transition-all duration-300 ease-in-out h-full"
@@ -128,6 +128,16 @@ export default function WorkSpace({ workspacesData, selectedCategory }: Workspac
           </div>
         );
       });
+
+      // Add the row as a single grid container
+      content.push(
+        <div
+          key={`row-${rowIndex}`}
+          className="col-span-1 md:col-span-2 lg:col-span-2 xl:col-span-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 auto-rows-fr"
+        >
+          {rowCards}
+        </div>
+      );
 
       // Add WorkspaceDetails if any card in this row is selected
       const selectedInThisRow = selectedIndex !== null && Math.floor(selectedIndex / columnCount) === rowIndex;
@@ -192,7 +202,7 @@ export default function WorkSpace({ workspacesData, selectedCategory }: Workspac
           </button>
         </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 overflow-y-auto auto-rows-fr">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 overflow-y-auto">
         {isLoading ? renderSkeleton() : sortedWorkspaces.length > 0 ? (renderCards()) : (renderNoData())}
       </div>
 
