@@ -31,7 +31,7 @@ const SkillEdit: React.FC<SkillEditProps> = ({ id, config, initialData, skillDat
   const [filesToDelete, setFilesToDelete] = useState<number[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const formMethods = useForm({ defaultValues: initialData });
-  const { control, handleSubmit, formState: { errors, isSubmitting }, reset, watch } = formMethods;
+  const { control, handleSubmit, formState: { errors, isSubmitting }, reset, watch, setValue } = formMethods;
   const location = useLocation();
   const accessLevel = (location.state as any)?.accessLevel;
 
@@ -61,14 +61,11 @@ const SkillEdit: React.FC<SkillEditProps> = ({ id, config, initialData, skillDat
         const skill = response.data.data;
         setLocalSkillData(skill);
 
-        // Find the AI model label from the ID for display in select
-        const aiModelLabel = aiModelOptions.find(model => model.value === Number(skill.ai_model_id))?.label || "";
-
         reset({
           name: skill.name,
           description: skill.description,
           systemPrompt: skill.system_prompt || "",
-          aiModelID: aiModelLabel,
+          aiModelID: skill.ai_model_id || "",
           category:
             skill.attachments?.[0]?.source_type === "ADLS"
               ? "File upload"
@@ -81,7 +78,16 @@ const SkillEdit: React.FC<SkillEditProps> = ({ id, config, initialData, skillDat
       }
     }
     if (id) fetchSkill(); 
-  }, [id, reset, aiModelOptions]);
+  }, [id, reset]);
+  
+  useEffect(() => {
+    if (localSkillData && aiModelOptions.length > 0) {
+      const aiModelLabel = aiModelOptions.find(model => model.value === Number(localSkillData.ai_model_id))?.label || "";
+      if (aiModelLabel) {
+        setValue("aiModelID", aiModelLabel);
+      }
+    }
+  }, [localSkillData, aiModelOptions, setValue]);
 
   const dataSourceType = watch("category");
   const isADLS = dataSourceType === "File upload";
