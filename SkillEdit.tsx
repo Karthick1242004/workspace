@@ -38,15 +38,13 @@ const SkillEdit: React.FC<SkillEditProps> = ({ id, config, initialData, skillDat
   const { data: aiModelsData, isLoading: loadingAiModels } =
     useFetchHandler("chats/ai-models", "ai-models-list", true);
 
-  let aiModelOptions: { label: string; value: number }[] = []
-  if (aiModelsData?.length) {
-    aiModelOptions = aiModelsData.map((model: any) => ({
-      label: model.name,
-      value: Number(model.id),
-    }));
-  }
+  const aiModelOptions: { label: string; value: number }[] = aiModelsData?.length 
+    ? aiModelsData.map((model: any) => ({
+        label: model.name,
+        value: Number(model.id),
+      }))
+    : [];
 
-  // Create modified config with AI model options
   const modifiedConfig = {
     ...config,
     fields: config.fields.map(field => 
@@ -100,7 +98,7 @@ const SkillEdit: React.FC<SkillEditProps> = ({ id, config, initialData, skillDat
   const onSubmit = async (data: any) => {
     const formData = new FormData();
 
-    // Find the actual ID from the selected AI model label
+    // Find the actual numeric ID from the selected AI model label
     const selectedAiModel = aiModelOptions.find(model => model.label === data.aiModelID);
     const aiModelID = selectedAiModel ? selectedAiModel.value : null;
 
