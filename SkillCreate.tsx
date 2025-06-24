@@ -37,10 +37,7 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
   const { id } = useParams<{ id?: string }>();
   const queryClient = useQueryClient();
   const { navigateTo } = useNavigation();
-
   const config = formConfigs["skill"];
-
-  // Create modified config with AI model options
   const modifiedConfig = {
     ...config,
     fields: config.fields.map(field => 
@@ -88,20 +85,17 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
       }));
     }
 
-  let aiModelOptions: { label: string; value: number }[] = []
-    if (aiModelsData?.length) {
-      aiModelOptions = aiModelsData.map((model: any) => ({
+  const aiModelOptions: { label: string; value: number }[] = aiModelsData?.length 
+    ? aiModelsData.map((model: any) => ({
         label: model.name,
         value: Number(model.id),
-      }));
-    }
+      }))
+    : [];
 
 
   useEffect(() => {
     if (fetchedSkillData) {
-      // Find the AI model label from the ID for display in select
       const aiModelLabel = aiModelOptions.find(model => model.value === Number(fetchedSkillData.ai_model_id))?.label || "";
-
       reset({
         name: fetchedSkillData.name,
         description: fetchedSkillData.description,
@@ -159,8 +153,6 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
   const onSubmit = async (data: SkillFormData) => {
     try {
       const formData = new FormData();
-
-      // Find the actual ID from the selected AI model label
       const selectedAiModel = aiModelOptions.find(model => model.label === data.aiModelID);
       const aiModelID = selectedAiModel ? selectedAiModel.value : null;
 
