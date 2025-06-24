@@ -25,8 +25,6 @@ interface SkillCreateProps {
   onClose: () => void;
 }
 
-
-
 const SkillCreate: React.FC<SkillCreateProps> = ({
   workspaceId,
   userId = "1",
@@ -38,14 +36,6 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
   const queryClient = useQueryClient();
   const { navigateTo } = useNavigation();
   const config = formConfigs["skill"];
-  const modifiedConfig = {
-    ...config,
-    fields: config.fields.map(field => 
-      field.name === "aiModelID" 
-        ? { ...field, options: aiModelOptions.map(opt => opt.label), isLoading: loadingAiModels }
-        : field
-    )
-  };
 
   const {
     control,
@@ -92,15 +82,23 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
       }))
     : [];
 
+  const modifiedConfig = {
+    ...config,
+    fields: config.fields.map(field => 
+      field.name === "aiModelID" 
+        ? { ...field, options: aiModelOptions.map(opt => opt.label), isLoading: loadingAiModels }
+        : field
+    )
+  };
+
 
   useEffect(() => {
     if (fetchedSkillData) {
-      const aiModelLabel = aiModelOptions.find(model => model.value === Number(fetchedSkillData.ai_model_id))?.label || "";
       reset({
         name: fetchedSkillData.name,
         description: fetchedSkillData.description,
         systemPrompt: fetchedSkillData.system_prompt || "",
-        aiModelID: aiModelLabel,
+        aiModelID: fetchedSkillData.ai_model_id || "",
         publicURL:
           fetchedSkillData.attachments?.find(
             (a: any) => a.source_type === "URL"
@@ -118,7 +116,17 @@ const SkillCreate: React.FC<SkillCreateProps> = ({
               : "Public URL",
       });
     }
-  }, [fetchedSkillData, reset, aiModelOptions]);
+  }, [fetchedSkillData, reset]);
+
+
+  useEffect(() => {
+    if (fetchedSkillData && aiModelOptions.length > 0) {
+      const aiModelLabel = aiModelOptions.find(model => model.value === Number(fetchedSkillData.ai_model_id))?.label || "";
+      if (aiModelLabel) {
+        setValue("aiModelID", aiModelLabel);
+      }
+    }
+  }, [fetchedSkillData, aiModelOptions, setValue]);
 
   useEffect(() => {
     setIsLoadingSkill(loadingSkillData);
